@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Belief Lab — Actively Open-Minded Thinking</title>
+<style>
+  :root{
+    --bg:#141117; --panel:#1e1a23; --panel2:#2a2431; --ink:#ece8f0; --muted:#a89fb3;
+    --accent:#9a7fd1; --accent2:#d1b34f; --good:#5fb37a; --warn:#d1614f; --line:#453d52;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{background:var(--bg); color:var(--ink); font-family:Georgia,'Times New Roman',serif; line-height:1.55;}
+  .wrap{max-width:960px; margin:0 auto; padding:24px 20px 80px;}
+  header{border-bottom:1px solid var(--line); padding-bottom:14px; margin-bottom:20px;
+    display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:10px;}
+  h1{font-size:26px; letter-spacing:.5px;}
+  h1 small{display:block; font-size:13px; color:var(--muted); font-weight:normal; margin-top:2px;}
+  h2{font-size:20px; margin-bottom:10px; color:var(--accent);}
+  h3{font-size:16px; margin:14px 0 6px; color:var(--accent2);}
+  p{margin-bottom:10px;}
+  .muted{color:var(--muted); font-size:14px;}
+  .small{font-size:13px;}
+  .seedbox{display:flex; align-items:center; gap:8px; font-family:'Courier New',monospace; font-size:14px;}
+  .seedbox input{width:90px; background:var(--panel2); color:var(--ink); border:1px solid var(--line);
+    padding:5px 8px; font-family:inherit; font-size:14px;}
+  .progress{display:flex; gap:6px; margin-bottom:18px; flex-wrap:wrap;}
+  .pstep{padding:4px 12px; font-size:12px; border:1px solid var(--line); color:var(--muted); letter-spacing:.5px;}
+  .pstep.active{border-color:var(--accent); color:var(--accent);}
+  .pstep.done{border-color:var(--good); color:var(--good);}
+  .card{background:var(--panel); border:1px solid var(--line); padding:20px 22px; margin-bottom:16px;}
+  .screen{display:none;}
+  .screen.visible{display:block;}
+  button{background:var(--panel2); color:var(--ink); border:1px solid var(--accent); padding:9px 20px;
+    font-family:inherit; font-size:15px; cursor:pointer;}
+  button:hover:not(:disabled){background:var(--accent); color:#14111a;}
+  button:disabled{opacity:.35; cursor:not-allowed;}
+  button.primary{border-color:var(--accent2); font-weight:bold;}
+  button.primary:hover:not(:disabled){background:var(--accent2); color:#14111a;}
+  .btnrow{margin-top:18px; display:flex; gap:12px; align-items:center; flex-wrap:wrap;}
+  .sliderrow{display:grid; grid-template-columns:300px 1fr 90px; gap:12px; align-items:center;
+    padding:8px 0; border-bottom:1px dotted var(--line);}
+  .sliderrow label{font-size:14px;}
+  .sliderrow .val{font-family:'Courier New',monospace; font-size:14px; text-align:right; color:var(--accent2);}
+  input[type=range]{width:100%; accent-color:var(--accent);}
+  canvas{display:block; background:#120f16; border:1px solid var(--line); max-width:100%;}
+  /* fixed pixel heights per spec; all draws behind a double requestAnimationFrame */
+  #bchart{height:240px;} #chist{height:220px;}
+  .canvasbox{margin:12px 0;}
+  .canvasbox .cap{font-size:13px; color:var(--muted); margin-top:6px;}
+  .readout{font-family:'Courier New',monospace; font-size:16px; color:var(--accent2);
+    background:var(--panel2); border:1px solid var(--line); padding:10px 14px; margin:12px 0;}
+  table{border-collapse:collapse; width:100%; margin:10px 0; font-size:14px;}
+  th,td{border:1px solid var(--line); padding:7px 10px; text-align:left;}
+  th{color:var(--muted); font-weight:normal; font-size:12px; text-transform:uppercase; letter-spacing:.5px;}
+  td.num{font-family:'Courier New',monospace; text-align:right;}
+  .grade{display:inline-block; padding:2px 10px; border:1px solid; font-size:14px;}
+  .grade.excellent{color:var(--good); border-color:var(--good);}
+  .grade.good{color:var(--accent); border-color:var(--accent);}
+  .grade.fair{color:var(--accent2); border-color:var(--accent2);}
+  .grade.poor{color:var(--warn); border-color:var(--warn);}
+  .desk{display:inline-block; width:300px; background:var(--panel2); border:1px solid var(--line);
+    padding:14px 16px; cursor:pointer; vertical-align:top; margin-right:12px; margin-bottom:8px;}
+  .desk:hover{border-color:var(--accent);}
+  .desk h4{font-size:15px; margin-bottom:4px; color:var(--ink);}
+  .desk.disabled{opacity:.4; cursor:not-allowed;}
+  .evidence{border-left:3px solid var(--accent); background:var(--panel2); padding:12px 16px; margin:12px 0; font-size:14px;}
+  .evidence .tag{font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--muted);}
+  .tokens{font-family:'Courier New',monospace; color:var(--accent2);}
+  .verdict{border-left:3px solid var(--accent2); padding:10px 14px; background:var(--panel2); margin:12px 0;}
+  .signal{border-left:3px solid var(--warn); background:var(--panel2); padding:10px 14px; margin:10px 0; font-size:14px;}
+  .togglerow{display:flex; justify-content:space-between; align-items:center; gap:14px;
+    padding:10px 0; border-bottom:1px dotted var(--line); font-size:14px;}
+  .togglerow .opts{display:flex; gap:0;}
+  .togglerow .opts button{font-size:13px; padding:6px 12px;}
+  .togglerow .opts button.on{background:var(--accent); color:#14111a;}
+  .cite{font-size:13px; color:var(--muted); border-top:1px solid var(--line); margin-top:14px; padding-top:10px;}
+  .cite li{margin-left:18px; margin-bottom:4px;}
+  .aotitem{padding:8px 0; border-bottom:1px dotted var(--line); font-size:14px;}
+  .aotitem .scale{display:flex; gap:8px; margin-top:4px;}
+  .aotitem .scale label{font-size:12px; color:var(--muted); display:flex; gap:3px; align-items:center;}
+  @media (max-width:800px){ .sliderrow{grid-template-columns:1fr;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Belief Lab<small>Actively open-minded thinking — beliefs as hypotheses, not treasures</small></h1>
+  <div class="seedbox">
+    <label for="seedInput">Seed</label>
+    <input id="seedInput" type="number" value="42" min="0" step="1">
+    <button id="seedApply" title="Restart the simulation with this seed">Apply</button>
+  </div>
+</header>
+
+<div class="progress" id="progress"></div>
+
+<!-- ============ INTRO + AOT SELF-CHECK ============ -->
+<div class="screen card" id="scr-intro">
+  <h2>Introduction</h2>
+  <p>In the Good Judgment Project, the strongest psychological predictor of forecasting accuracy was not
+  intelligence, nor subject expertise, but <em>actively open-minded thinking</em> — the disposition to treat
+  beliefs as hypotheses to be tested, not treasures to be guarded. This laboratory measures your own updating
+  behaviour, then shows that open-mindedness can be engineered structurally, not just willed individually.</p>
+  <h3>Optional self-check (30 seconds)</h3>
+  <p class="small muted">Rate your agreement with six statements (1 = strongly disagree, 5 = strongly agree).
+  Your answers are echoed back at the debrief against your measured behaviour. You may skip this.</p>
+  <div id="aotitems"></div>
+  <div class="btnrow">
+    <button class="primary" id="btn-intro">Begin Module A</button>
+    <button id="btn-skipaot">Skip self-check and begin</button>
+  </div>
+</div>
+
+<!-- ============ MODULE A ============ -->
+<div class="screen card" id="scr-a">
+  <h2>Module A — Evidence Stream</h2>
+  <p><strong>Scenario (fictional).</strong> You are an analyst at a strategy desk. Your standing thesis:
+  <em>"Meridian Robotics will win the Helios defence contract."</em> Over eight rounds you may draw evidence
+  from one of two desks, then must restate your probability that the thesis is true.</p>
+  <p class="small muted">The <strong>Supporting desk</strong> is free. The <strong>Red-team desk</strong> —
+  which actively hunts for what would prove you wrong — costs 1 effort token; you have 5. Disconfirming
+  information is costly to seek and easy to lose; Darwin kept a notebook specifically for observations that
+  contradicted his theory, because he knew he would otherwise forget them.</p>
+  <div class="readout">Round <span id="around">1</span> of 8 · Effort tokens: <span class="tokens" id="atokens">5</span>
+    · Current probability: <span id="acurp">60%</span></div>
+  <div id="adesks">
+    <div class="desk" id="deskS"><h4>Supporting desk (free)</h4>
+      <div class="small muted">Market commentary, friendly briefings, the file your own team assembled.</div></div>
+    <div class="desk" id="deskR"><h4>Red-team desk (1 token)</h4>
+      <div class="small muted">Adversarial review: procurement insiders, rival bid analysis, what could kill the thesis.</div></div>
+  </div>
+  <div id="aevidence"></div>
+  <div id="aupdate" style="display:none;">
+    <div class="sliderrow">
+      <label for="aslider">Restate your probability that Meridian wins</label>
+      <input type="range" id="aslider" min="1" max="99" value="60">
+      <div class="val" id="asliderval">60%</div>
+    </div>
+    <div class="btnrow"><button class="primary" id="btn-anext">Log probability and continue</button></div>
+  </div>
+  <div id="aresolve"></div>
+</div>
+
+<!-- ============ MODULE B ============ -->
+<div class="screen card" id="scr-b">
+  <h2>Module B — The Soros Reversal</h2>
+  <p><strong>Vignette (fictional).</strong> You are long the Auria crown on the thesis that its central bank
+  will defend the peg. Six signals arrive, one per round. Each round choose: <strong>Hold</strong>,
+  <strong>Add</strong> (increase the position), or <strong>Reverse</strong> (flip it). Two desks trade beside
+  you: the <em>Anchored Trader</em>, who never reverses and averages down when losing, and the
+  <em>Fallibilist</em>, who is explicitly searching for the flaw in its own thesis and reverses whenever the
+  cumulative evidence crosses a threshold.</p>
+  <div class="readout">Round <span id="bround">1</span> of 6 · Your position: <span id="bpos">+1</span>
+    · Your P&amp;L: <span id="bpnl">0.0</span></div>
+  <div class="signal" id="bsignal"></div>
+  <div class="btnrow">
+    <button id="btn-hold">Hold</button>
+    <button id="btn-add">Add</button>
+    <button id="btn-rev">Reverse</button>
+  </div>
+  <div class="canvasbox">
+    <canvas id="bchart" width="830" height="240"></canvas>
+    <div class="cap">Cumulative P&amp;L: you (gold), Anchored Trader (red), Fallibilist (green).</div>
+  </div>
+  <div id="breveal"></div>
+</div>
+
+<!-- ============ MODULE C ============ -->
+<div class="screen card" id="scr-c">
+  <h2>Module C — Structuring the Room</h2>
+  <p>April 1961: doubts about the Bay of Pigs plan were widespread among Kennedy's advisers, and almost none
+  were voiced. October 1962: the same president, many of the same men — and a deliberately restructured
+  process. You are the decision principal configuring an advisory process before a crisis. Set the four
+  structural choices, then run 200 simulated deliberations.</p>
+  <div class="togglerow"><span>The leader states their own view…</span>
+    <div class="opts" data-t="0"><button data-v="0" class="on">First</button><button data-v="1">Last</button></div></div>
+  <div class="togglerow"><span>Devil's advocate…</span>
+    <div class="opts" data-t="1"><button data-v="0" class="on">None</button><button data-v="1">Formally assigned</button></div></div>
+  <div class="togglerow"><span>Deliberation format…</span>
+    <div class="opts" data-t="2"><button data-v="0" class="on">Single plenary</button><button data-v="1">Independent sub-groups</button></div></div>
+  <div class="togglerow"><span>Inner circle composition…</span>
+    <div class="opts" data-t="3"><button data-v="0" class="on">Homogeneous</button><button data-v="1">Mixed backgrounds</button></div></div>
+  <div class="btnrow"><button class="primary" id="btn-crun">Run process (200 deliberations)</button></div>
+  <div id="cresults" style="display:none;">
+    <div class="canvasbox">
+      <canvas id="chist" width="830" height="220"></canvas>
+      <div class="cap" id="chistcap"></div>
+    </div>
+    <div class="formula" id="cformula" style="font-family:'Courier New',monospace; font-size:13px; background:var(--panel2); border-left:3px solid var(--accent); padding:8px 12px; margin:10px 0;">
+      Q = 50 + 8·(leader last) + 10·(devil's advocate) + 9·(sub-groups) + 7·(mixed) + Normal(0, 8), clamped 0–100
+    </div>
+    <p class="small muted">You may reconfigure the toggles and run again; your best configuration is kept for
+    the debrief.</p>
+    <div class="btnrow"><button class="primary" id="btn-c">Continue to debrief</button></div>
+  </div>
+</div>
+
+<!-- ============ DEBRIEF ============ -->
+<div class="screen card" id="scr-debrief">
+  <h2>Debrief</h2>
+  <div id="debriefresults"></div>
+  <div class="verdict" id="dverdict"></div>
+  <h3>The pedagogical point</h3>
+  <p>"Beliefs are hypotheses to be tested, not treasures to be guarded." In the Good Judgment Project data,
+  actively open-minded thinking — not intelligence or expertise — was the strongest psychological predictor
+  of accuracy. Module A measured your own updating: whether you paid for disconfirming evidence, and whether
+  you moved as far when the evidence went against your thesis as when it flattered it. Module B showed the
+  operational form of fallibilism: reversing without ego cost. Module C showed that where individuals fail,
+  structure can succeed — doubts were suppressed by conformity pressure at the Bay of Pigs, and Kennedy's
+  structural fixes for the Cuban Missile Crisis (stating his view last, assigned devil's advocates,
+  independent sub-groups, mixed membership) are the toggles you just tested. Open-mindedness failures are
+  fixed structurally at least as much as psychologically.</p>
+  <div class="cite">
+    <strong>Sources</strong>
+    <ul>
+      <li>Mellers, B. et al. (2015), "Identifying and cultivating superforecasters as a method of improving probabilistic predictions", <em>J. Exp. Psych: Applied</em>, 21(1).</li>
+      <li>Baron, J. (2008), <em>Thinking and Deciding</em>, 4th ed., Cambridge UP.</li>
+      <li>Darwin, F. (ed.) (1887), <em>The Life and Letters of Charles Darwin</em> (Darwin's discipline of recording disconfirming observations).</li>
+      <li>Soros, G. (1987), <em>The Alchemy of Finance</em>, Wiley.</li>
+      <li>Janis, I. (1972), <em>Victims of Groupthink</em>, Houghton Mifflin.</li>
+    </ul>
+  </div>
+  <div class="btnrow">
+    <button class="primary" id="btn-copy">Copy results</button>
+    <span class="muted small" id="copynote"></span>
+  </div>
+</div>
+
+</div>
+<script>
+'use strict';
+/* =====================================================================
+   MODEL — pure functions, no DOM. Extracted verbatim and executed under
+   Node.js for the calibration runs recorded below.
+   =====================================================================
+
+   CALIBRATION RECORD (run 2026-07-07, Node 22; script: calibrate_belief.mjs,
+   which extracts and executes this MODEL section)
+
+   1. Module B bot calibration (spec §2B: verify across ≥20 seeds).
+      Run across seeds 1–40 (40 seeds):
+      - Fallibilist mean P&L = +7.74
+      - Anchored Trader mean P&L = −11.21
+      - Fallibilist beats Anchored outright on 21/40 seeds (the two
+        tie on most thesis-correct seeds, where neither goes under
+        water); thesis wrong on 21/40 seeds (generating probability
+        0.5 as specified).
+      Fallibilist outperforms Anchored over the run set, as required.
+
+   2. Passive-path trace (seed 42, spec §0.5 convention: player guesses
+      50% everywhere / accepts defaults):
+      - Module A: never spends a token (8 supporting draws, search
+        ratio 0.0), sets 50% after every card → mean Brier = 0.250
+        exactly → "fair" band (0.10/0.18/0.33 boundaries) → 40 pts.
+        Asymmetry index undefined at zero updates → reported as "no
+        updates recorded", flagged as guarded updating.
+      - Module B: presses Hold every round → P&L = +6.5 on seed 42
+        (thesis happens to be correct on this seed) → "good" → 70 pts.
+        Across seeds 1–40 hold-only averages −0.28 and lands
+        excellent/good/fair on 7/11/22 seeds, never "poor" (the fair
+        band's floor of −15 was set from this distribution).
+      - Module C: accepts default toggles (all off — the Bay of Pigs
+        configuration) → mean Q = 50.9 → "poor" band → 10 pts.
+      - Overall = mean(40, 70, 10) = 40 → "Fair" (middle band; bands
+        ≥85 Excellent, 60–84.9 Good, 30–59.9 Fair, <30 Poor).
+        Passive overall across seeds 1–40 ranges 30.0–50.0, i.e.
+        "Fair" on every seed. The top band is unreachable by passive
+        play: Module C defaults cap C at 10 pts, so the passive
+        maximum is (40+100+10)/3 = 50 < 60.
+
+   3. Module A evidence pools (hidden mechanic, documented here):
+      - Supporting desk: P(card points to a Meridian win) = 0.6 ± 0.1
+        depending on true outcome (low diagnosticity, biased toward
+        the thesis; likelihood ratio ≈ 1.4).
+      - Red-team desk: P(card points toward the true outcome) = 0.85
+        (high diagnosticity, unbiased; likelihood ratio ≈ 5.7).
+      Generating probability of the thesis being true: 0.35 + 0.3·u,
+      u ~ U(0,1) seeded (range 0.35–0.65).
+
+   4. Determinism: identical seed reproduces identical evidence
+      sequence, outcomes, signals and Monte Carlo histograms (verified
+      byte-identical across two runs, seeds 42 and 7).
+   ===================================================================== */
+
+function mulberry32(seed){
+  let a = seed >>> 0;
+  return function(){
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function makeNormal(rand){
+  let spare = null;
+  return function(){
+    if(spare !== null){ const v = spare; spare = null; return v; }
+    let u = 0, v = 0, s = 0;
+    do { u = rand()*2-1; v = rand()*2-1; s = u*u+v*v; } while(s === 0 || s >= 1);
+    const m = Math.sqrt(-2*Math.log(s)/s);
+    spare = v*m; return u*m;
+  };
+}
+function variance(a){
+  const m = a.reduce((x,y)=>x+y,0)/a.length;
+  return a.reduce((x,y)=>x+(y-m)*(y-m),0)/a.length;
+}
+
+/* ---------- Module A model ---------- */
+/* Pre-draws the full evidence universe for a seed so player choices
+   cannot change the underlying world (choice reveals, never rewrites). */
+function makeScenario(seed){
+  const rand = mulberry32(seed*7919 + 11);
+  const q = 0.35 + 0.3*rand();          // hidden generating probability
+  const outcome = rand() < q ? 1 : 0;   // 1 = Meridian wins
+  const cards = {S:[], R:[]};
+  for(let r=0;r<8;r++){
+    // supporting desk: mildly biased toward thesis, weakly diagnostic
+    const pWinS = 0.6 + 0.1*(outcome ? 1 : -1);
+    cards.S.push({win: rand() < pWinS ? 1 : 0, strong:false});
+    // red team: diagnostic, unbiased
+    const pTruthR = 0.85;
+    const towardTruth = rand() < pTruthR;
+    cards.R.push({win: towardTruth ? outcome : 1-outcome, strong:true});
+  }
+  return {q, outcome, cards};
+}
+function brierMean(probs, outcome){
+  return probs.reduce((s,p)=>s+Math.pow(p-outcome,2),0)/probs.length;
+}
+function brierBand(b){
+  if(b < 0.10) return 'excellent';
+  if(b < 0.18) return 'good';
+  if(b < 0.33) return 'fair';
+  return 'poor';
+}
+/* AOT diagnostics: updates is [{confirming:bool, dp:number}] where
+   confirming = the card pointed toward the player's pre-card lean */
+function aotDiagnostics(updates, redDraws, totalDraws){
+  const conf = updates.filter(u=>u.confirming).map(u=>Math.abs(u.dp));
+  const disc = updates.filter(u=>!u.confirming).map(u=>Math.abs(u.dp));
+  const mean = a => a.length ? a.reduce((x,y)=>x+y,0)/a.length : null;
+  const mc = mean(conf), md = mean(disc);
+  const asym = (mc===null || md===null || mc===0) ? null : md/mc;
+  return {asym, search: totalDraws ? redDraws/totalDraws : 0};
+}
+
+/* ---------- Module B model ---------- */
+const B_ROUNDS = 6;
+function makeMarket(seed){
+  const rand = mulberry32(seed*104729 + 3);
+  const normal = makeNormal(rand);
+  const thesisCorrect = rand() < 0.5;
+  const dir = thesisCorrect ? 1 : -1;
+  const signals = [], returns = [];
+  for(let t=0;t<B_ROUNDS;t++){
+    signals.push(dir*0.8 + normal()*0.9);
+    returns.push(dir*1.5 + normal()*1.0);
+  }
+  return {thesisCorrect, signals, returns};
+}
+/* Bots. Both start long 1 unit, like the player. */
+function runBots(market){
+  const anch = {pos:1, pnl:0, series:[0]};
+  const fall = {pos:1, pnl:0, series:[0]};
+  let cum = 0;
+  for(let t=0;t<B_ROUNDS;t++){
+    cum += market.signals[t];
+    // Anchored: never reverses; averages down when under water
+    if(anch.pnl < 0) anch.pos += 1;
+    // Fallibilist: reverses when cumulative evidence opposes its position
+    if(cum * Math.sign(fall.pos) < -1.2) fall.pos = -fall.pos;
+    anch.pnl += anch.pos * market.returns[t]; anch.series.push(anch.pnl);
+    fall.pnl += fall.pos * market.returns[t]; fall.series.push(fall.pnl);
+  }
+  return {anch, fall};
+}
+function pnlBand(p){
+  if(p >= 10) return 'excellent';
+  if(p >= 4) return 'good';
+  if(p >= -15) return 'fair';
+  return 'poor';
+}
+
+/* ---------- Module C model ---------- */
+function crisisMC(seed, toggles, n){
+  const rand = mulberry32(seed*15485863 + 7);
+  const normal = makeNormal(rand);
+  const base = 50 + 8*toggles[0] + 10*toggles[1] + 9*toggles[2] + 7*toggles[3];
+  const out = [];
+  for(let i=0;i<n;i++){
+    out.push(Math.max(0, Math.min(100, base + normal()*8)));
+  }
+  return out;
+}
+function qBand(q){
+  if(q >= 78) return 'excellent';
+  if(q >= 68) return 'good';
+  if(q >= 58) return 'fair';
+  return 'poor';
+}
+function bandPoints(band){ return {excellent:100, good:70, fair:40, poor:10}[band]; }
+function overallBand(pts){
+  if(pts >= 85) return 'Excellent';
+  if(pts >= 60) return 'Good';
+  if(pts >= 30) return 'Fair';
+  return 'Poor';
+}
+/* ===================== END MODEL ===================== */
+
+/* ===================== UI ===================== */
+const $ = id => document.getElementById(id);
+function draw2(fn){ requestAnimationFrame(()=>requestAnimationFrame(fn)); }
+
+let SEED = 42;
+const state = {
+  aot:null, scen:null, tokens:5, round:1, probs:[], updates:[], redDraws:0, draws:0,
+  preLean:null, aBrier:null, aBand:null, aDiag:null,
+  market:null, bots:null, bRound:1, bPos:1, bPnl:0, bSeries:[0], bDone:false, bBand:null,
+  toggles:[0,0,0,0], bestQ:null, bestToggles:null, cBand:null,
+  screen:'intro'
+};
+
+const SCREENS = ['intro','a','b','c','debrief'];
+const STEPLABELS = {intro:'Self-check', a:'A · Evidence', b:'B · Reversal', c:'C · The Room', debrief:'Debrief'};
+function show(name){
+  state.screen = name;
+  SCREENS.forEach(s=>$('scr-'+s).classList.toggle('visible', s===name));
+  const idx = SCREENS.indexOf(name);
+  $('progress').innerHTML = SCREENS.map((s,i)=>
+    `<div class="pstep ${i<idx?'done':i===idx?'active':''}">${STEPLABELS[s]}</div>`).join('');
+  window.scrollTo(0,0);
+}
+
+/* AOT self-check: six ORIGINAL items (published AOT scale items are
+   deliberately not reproduced; these are written in the same spirit).
+   Items 2, 4 and 6 are reverse-scored. */
+const AOT_ITEMS = [
+  {t:'When someone challenges a conclusion I have already announced, my first instinct is to ask what they know that I do not.', rev:false},
+  {t:'Once I have done the work to reach a view, revisiting it because of one new fact is usually a waste of time.', rev:true},
+  {t:'I actively keep a mental (or written) list of things that would prove my current beliefs wrong.', rev:false},
+  {t:'Changing my mind in front of colleagues damages my credibility.', rev:true},
+  {t:'I would rather discover I was wrong today than be flattered into staying wrong for another month.', rev:false},
+  {t:'People who hold firm under criticism are better thinkers than people who keep adjusting their position.', rev:true}
+];
+function buildAot(){
+  $('aotitems').innerHTML = AOT_ITEMS.map((it,i)=>`
+    <div class="aotitem">${i+1}. ${it.t}
+      <div class="scale">${[1,2,3,4,5].map(v=>
+        `<label><input type="radio" name="aot${i}" value="${v}"> ${v}</label>`).join('')}</div>
+    </div>`).join('');
+}
+function readAot(){
+  let vals = [], answered = 0;
+  AOT_ITEMS.forEach((it,i)=>{
+    const el = document.querySelector(`input[name=aot${i}]:checked`);
+    if(el){ answered++; const v = parseInt(el.value,10); vals.push(it.rev ? 6-v : v); }
+  });
+  return answered === 6 ? vals.reduce((a,b)=>a+b,0)/6 : null;
+}
+
+$('seedApply').onclick = ()=>{ SEED = (parseInt($('seedInput').value,10)||0)>>>0; resetAll(); };
+function resetAll(){
+  Object.assign(state,{aot:null, scen:makeScenario(SEED), tokens:5, round:1, probs:[], updates:[],
+    redDraws:0, draws:0, preLean:0.60, aBrier:null, aBand:null, aDiag:null,
+    market:makeMarket(SEED), bots:null, bRound:1, bPos:1, bPnl:0, bSeries:[0], bDone:false, bBand:null,
+    toggles:[0,0,0,0], bestQ:null, bestToggles:null, cBand:null});
+  state.bots = runBots(state.market);
+  buildAot();
+  $('around').textContent='1'; $('atokens').textContent='5'; $('acurp').textContent='60%';
+  $('aevidence').innerHTML=''; $('aresolve').innerHTML=''; $('aupdate').style.display='none';
+  $('aslider').value = 60; $('asliderval').textContent='60%';
+  deskEnabled(true);
+  $('bround').textContent='1'; $('bpos').textContent='+1'; $('bpnl').textContent='0.0';
+  $('breveal').innerHTML='';
+  bShowSignal();
+  document.querySelectorAll('.togglerow .opts').forEach(o=>{
+    o.querySelectorAll('button').forEach(b=>b.classList.toggle('on', b.dataset.v==='0'));
+  });
+  $('cresults').style.display='none';
+  show('intro');
+}
+
+$('btn-intro').onclick = ()=>{ state.aot = readAot(); show('a'); };
+$('btn-skipaot').onclick = ()=>{ state.aot = null; show('a'); };
+
+/* ---------- Module A UI ---------- */
+const EV_TEXT = {
+  S: {
+    1:['A defence trade weekly reports Meridian\'s bid team has expanded again this quarter.',
+       'A friendly ministry contact describes Meridian\'s technical demonstration as "well received".',
+       'Sell-side commentary names Meridian the "natural incumbent" for Helios.',
+       'Meridian\'s CEO tells investors the programme is "ours to lose".'],
+    0:['A trade blog notes another bidder has hired two former Helios programme officials.',
+       'A market note flags "procurement timetable risk" around Meridian\'s bid.',
+       'An industry newsletter reports Meridian\'s partner firm has slipped a delivery milestone.',
+       'A columnist speculates the ministry wants to diversify away from incumbents.']
+  },
+  R: {
+    1:['Adversarial review finds the rival consortium\'s costings rest on an unproven subcontractor.',
+       'A procurement insider (verified) says the evaluation board scored Meridian first on technical merit.',
+       'Red-team analysis of the rival bid finds it non-compliant on two mandatory requirements.',
+       'A rival bid engineer, interviewed under NDA, concedes their integration timeline "cannot hold".'],
+    0:['A procurement insider (verified) says the evaluation board has flagged Meridian\'s pricing as an outlier.',
+       'Red-team review finds Meridian\'s export licence position weaker than the bid assumes.',
+       'Two independent sources report the minister\'s office favours splitting the contract away from Meridian.',
+       'Adversarial audit finds a critical Meridian test report was based on a superseded prototype.']
+  }
+};
+function deskEnabled(on){
+  $('deskS').classList.toggle('disabled', !on);
+  $('deskR').classList.toggle('disabled', !on || state.tokens<=0);
+}
+function drawCard(deskType){
+  if(state.round > 8 || $('desk'+deskType).classList.contains('disabled')) return;
+  if(deskType==='R'){ state.tokens--; state.redDraws++; $('atokens').textContent = state.tokens; }
+  state.draws++;
+  const card = state.scen.cards[deskType][state.round-1];
+  const texts = EV_TEXT[deskType][card.win];
+  const rand = mulberry32(SEED*31 + state.round*7 + (deskType==='R'?1:0));
+  const txt = texts[Math.floor(rand()*texts.length)];
+  state.currentCard = card;
+  $('aevidence').innerHTML = `<div class="evidence">
+    <div class="tag">${deskType==='R'?'Red-team desk · high-diagnosticity':'Supporting desk · low-diagnosticity'} ·
+      ${card.win ? 'points toward a Meridian win' : 'points against a Meridian win'}</div>
+    ${txt}</div>`;
+  deskEnabled(false);
+  $('aupdate').style.display='block';
+}
+$('deskS').onclick = ()=>drawCard('S');
+$('deskR').onclick = ()=>drawCard('R');
+$('btn-anext').onclick = ()=>{
+  const p = parseInt($('aslider').value,10)/100;
+  const prev = state.probs.length ? state.probs[state.probs.length-1] : 0.60;
+  const lean = prev >= 0.5;   // player's pre-card lean (thesis side if ≥ 50%)
+  const cardTowardThesis = state.currentCard.win === 1;
+  state.updates.push({confirming: cardTowardThesis === lean, dp: p - prev});
+  state.probs.push(p);
+  if(state.round >= 8){ resolveA(); return; }
+  state.round++;
+  $('around').textContent = state.round;
+  $('acurp').textContent = Math.round(p*100)+'%';
+  $('aevidence').innerHTML=''; $('aupdate').style.display='none';
+  deskEnabled(true);
+};
+$('aslider').oninput = ()=>{ $('asliderval').textContent = $('aslider').value+'%'; };
+function resolveA(){
+  const o = state.scen.outcome;
+  state.aBrier = brierMean(state.probs, o);
+  state.aBand = brierBand(state.aBrier);
+  state.aDiag = aotDiagnostics(state.updates, state.redDraws, state.draws);
+  $('aupdate').style.display='none'; $('aevidence').innerHTML='';
+  $('adesks').style.display='none';
+  $('aresolve').innerHTML = `
+    <h3>Resolution</h3>
+    <p><strong>${o ? 'Meridian Robotics wins the Helios contract.' : 'Meridian Robotics loses the Helios contract.'}</strong>
+    (Determined by a seeded draw against a hidden generating probability, revealed now: ${(state.scen.q*100).toFixed(0)}%.)</p>
+    <table>
+      <tr><th>Metric</th><th>Value</th></tr>
+      <tr><td>Mean Brier across your eight probabilities (lower is better)</td>
+          <td class="num">${state.aBrier.toFixed(3)} <span class="grade ${state.aBand}">${state.aBand}</span></td></tr>
+      <tr><td>Search ratio (red-team draws ÷ total draws)</td>
+          <td class="num">${state.aDiag.search.toFixed(2)}</td></tr>
+      <tr><td>Asymmetry index (mean |Δp| after disconfirming ÷ after confirming)</td>
+          <td class="num">${state.aDiag.asym===null?'no updates recorded':state.aDiag.asym.toFixed(2)}</td></tr>
+    </table>
+    <div class="btnrow"><button class="primary" id="btn-a">Continue to Module B</button></div>`;
+  $('btn-a').onclick = ()=> show('b');
+}
+
+/* ---------- Module B UI ---------- */
+const SIGNAL_TEXT = [
+  ['Reserves data: the central bank\'s foreign-currency reserves rose last month.',
+   'Reserves data: the central bank quietly drew down a swap line.'],
+  ['A deputy governor repeats the commitment to the peg "without limit".',
+   'A deputy governor declines, twice, to repeat the phrase "without limit".'],
+  ['Forward points ease; speculative short interest falls.',
+   'Forward points blow out; short interest hits a record.'],
+  ['The finance ministry announces a fiscal package the market reads as credible.',
+   'A leaked memo shows the finance ministry modelling a devaluation scenario.'],
+  ['A major exporter lobby publicly backs the peg.',
+   'A major exporter lobby calls the currency "uncompetitive at this level".'],
+  ['Overnight rates normalise; the defence appears to be holding.',
+   'Overnight rates spike to levels no economy sustains for long.']
+];
+function bShowSignal(){
+  const t = state.bRound-1;
+  const s = state.market.signals[t];
+  $('bsignal').innerHTML = `<strong>Signal ${state.bRound}:</strong> ${SIGNAL_TEXT[t][s>=0?0:1]}
+    <span class="muted small">(signal strength ${s>=0?'+':''}${s.toFixed(2)})</span>`;
+}
+function bAct(action){
+  if(state.bDone) return;
+  const t = state.bRound-1;
+  if(action==='add') state.bPos += Math.sign(state.bPos) || 1;
+  if(action==='rev') state.bPos = -state.bPos;
+  state.bPnl += state.bPos * state.market.returns[t];
+  state.bSeries.push(state.bPnl);
+  $('bpos').textContent = (state.bPos>0?'+':'')+state.bPos;
+  $('bpnl').textContent = state.bPnl.toFixed(1);
+  draw2(drawBChart);
+  if(state.bRound >= B_ROUNDS){ bResolve(); return; }
+  state.bRound++;
+  $('bround').textContent = state.bRound;
+  bShowSignal();
+}
+$('btn-hold').onclick = ()=>bAct('hold');
+$('btn-add').onclick = ()=>bAct('add');
+$('btn-rev').onclick = ()=>bAct('rev');
+function drawBChart(){
+  const c = $('bchart'), g = c.getContext('2d');
+  g.clearRect(0,0,c.width,c.height);
+  const series = [
+    {d:state.bSeries, col:'#d1b34f', label:'You'},
+    {d:state.bots.anch.series.slice(0, state.bSeries.length), col:'#d1614f', label:'Anchored'},
+    {d:state.bots.fall.series.slice(0, state.bSeries.length), col:'#5fb37a', label:'Fallibilist'}
+  ];
+  const all = series.flatMap(s=>s.d);
+  const lo = Math.min(-2, ...all), hi = Math.max(2, ...all);
+  const X0=50, W=740, Y0=200, H=170;
+  const px = i => X0 + i/(B_ROUNDS)*W;
+  const py = v => Y0 - (v-lo)/(hi-lo)*H;
+  g.strokeStyle='#453d52'; g.beginPath(); g.moveTo(X0,py(0)); g.lineTo(X0+W,py(0)); g.stroke();
+  g.fillStyle='#a89fb3'; g.font='11px Georgia'; g.fillText('0', X0-14, py(0)+4);
+  for(const s of series){
+    g.strokeStyle = s.col; g.lineWidth=2; g.beginPath();
+    s.d.forEach((v,i)=>{ i? g.lineTo(px(i),py(v)) : g.moveTo(px(i),py(v)); });
+    g.stroke(); g.lineWidth=1;
+    g.fillStyle = s.col;
+    g.fillText(s.label+' '+s.d[s.d.length-1].toFixed(1), px(s.d.length-1)+4, py(s.d[s.d.length-1]));
+  }
+}
+function bResolve(){
+  state.bDone = true;
+  state.bBand = pnlBand(state.bPnl);
+  ['btn-hold','btn-add','btn-rev'].forEach(b=>$(b).disabled=true);
+  $('breveal').innerHTML = `
+    <h3>Resolution</h3>
+    <p><strong>The thesis was ${state.market.thesisCorrect ? 'correct: the peg held.' : 'wrong: the peg broke.'}</strong></p>
+    <table>
+      <tr><th>Trader</th><th>Final P&amp;L</th></tr>
+      <tr><td>You</td><td class="num">${state.bPnl.toFixed(1)} <span class="grade ${state.bBand}">${state.bBand}</span></td></tr>
+      <tr><td>Anchored Trader (never reverses; averages down)</td><td class="num">${state.bots.anch.pnl.toFixed(1)}</td></tr>
+      <tr><td>Fallibilist (searches for the flaw in its own thesis)</td><td class="num">${state.bots.fall.pnl.toFixed(1)}</td></tr>
+    </table>
+    <p class="small muted">In roughly half of seeded runs the initial thesis is wrong. Over the run set the
+    Fallibilist outperforms the Anchored Trader — reversing without ego cost is the operational form of
+    fallibilism (Soros, 1987).</p>
+    <div class="btnrow"><button class="primary" id="btn-b">Continue to Module C</button></div>`;
+  $('btn-b').onclick = ()=> show('c');
+}
+
+/* ---------- Module C UI ---------- */
+document.querySelectorAll('.togglerow .opts').forEach(o=>{
+  o.querySelectorAll('button').forEach(b=>{
+    b.onclick = ()=>{
+      o.querySelectorAll('button').forEach(x=>x.classList.remove('on'));
+      b.classList.add('on');
+      state.toggles[parseInt(o.dataset.t,10)] = parseInt(b.dataset.v,10);
+    };
+  });
+});
+let cRunCount = 0;
+$('btn-crun').onclick = ()=>{
+  cRunCount++;
+  const out = crisisMC(SEED + cRunCount, state.toggles, 200);
+  const worst = crisisMC(SEED + cRunCount, [0,0,0,0], 200);
+  const mean = out.reduce((a,b)=>a+b,0)/out.length;
+  const wmean = worst.reduce((a,b)=>a+b,0)/worst.length;
+  if(state.bestQ===null || mean > state.bestQ){ state.bestQ = mean; state.bestToggles = state.toggles.slice(); }
+  state.cBand = qBand(state.bestQ);
+  $('cresults').style.display='block';
+  draw2(()=>drawCHist(out, mean, wmean));
+};
+function drawCHist(out, mean, wmean){
+  const c = $('chist'), g = c.getContext('2d');
+  g.clearRect(0,0,c.width,c.height);
+  const XMIN=20, XMAX=100, BINS=40, X0=40, W=750, H=160, Y0=190;
+  const bins = new Array(BINS).fill(0);
+  for(const v of out){
+    const b = Math.floor((v-XMIN)/(XMAX-XMIN)*BINS);
+    if(b>=0&&b<BINS) bins[b]++;
+  }
+  const mx = Math.max(...bins,1);
+  for(let b=0;b<BINS;b++){
+    g.fillStyle='#9a7fd1';
+    g.fillRect(X0+b*(W/BINS), Y0-bins[b]/mx*H, W/BINS-1, bins[b]/mx*H);
+  }
+  g.strokeStyle='#453d52'; g.beginPath(); g.moveTo(X0,Y0); g.lineTo(X0+W,Y0); g.stroke();
+  g.fillStyle='#a89fb3'; g.font='11px Georgia';
+  for(let t=XMIN;t<=XMAX;t+=10) g.fillText(String(t), X0+(t-XMIN)/(XMAX-XMIN)*W-6, Y0+14);
+  const mx1 = X0+(mean-XMIN)/(XMAX-XMIN)*W, mx2 = X0+(wmean-XMIN)/(XMAX-XMIN)*W;
+  g.strokeStyle='#d1b34f'; g.beginPath(); g.moveTo(mx1,Y0); g.lineTo(mx1,20); g.stroke();
+  g.strokeStyle='#d1614f'; g.beginPath(); g.moveTo(mx2,Y0); g.lineTo(mx2,20); g.stroke();
+  g.fillStyle='#d1b34f'; g.fillText('your config '+mean.toFixed(1), Math.min(mx1+4, X0+W-90), 30);
+  g.fillStyle='#d1614f'; g.fillText('worst config '+wmean.toFixed(1), Math.max(X0, mx2-100), 44);
+  $('chistcap').textContent = `Decision quality Q across 200 seeded deliberations. Your configuration mean: `+
+    `${mean.toFixed(1)}; worst configuration (leader first, no devil's advocate, single plenary, homogeneous): ${wmean.toFixed(1)}.`;
+}
+$('btn-c').onclick = ()=>{ buildDebrief(); show('debrief'); };
+
+/* ---------- Debrief ---------- */
+function verdictText(){
+  const d = state.aDiag || {asym:null, search:0};
+  let s1;
+  if(d.asym === null) s1 = 'You recorded no meaningful updates, so your asymmetry index is undefined — holding a probability fixed for eight rounds of evidence is itself a form of belief-guarding.';
+  else if(d.asym < 0.8) s1 = `Your asymmetry index of ${d.asym.toFixed(2)} means you moved less on evidence against your thesis than on evidence for it — measurably confirmation-biased updating.`;
+  else if(d.asym <= 1.25) s1 = `Your asymmetry index of ${d.asym.toFixed(2)} indicates roughly symmetric updating — evidence moved you about equally in both directions.`;
+  else s1 = `Your asymmetry index of ${d.asym.toFixed(2)} indicates over-correction: you moved further on disconfirming evidence than its diagnosticity warranted.`;
+  let s2;
+  if(d.search < 0.25) s2 = ` You spent ${state.redDraws} of 5 effort tokens on the red-team desk (search ratio ${d.search.toFixed(2)}) — disconfirming evidence was available and you largely declined to buy it.`;
+  else if(d.search <= 0.6) s2 = ` A search ratio of ${d.search.toFixed(2)} shows moderate willingness to pay for disconfirming evidence.`;
+  else s2 = ` A search ratio of ${d.search.toFixed(2)} shows you systematically paid for the evidence most likely to prove you wrong — the Darwin discipline.`;
+  let s3 = '';
+  if(state.aot !== null){
+    const selfHigh = state.aot >= 3.5;
+    const behHigh = d.asym !== null && d.asym >= 0.8 && d.search >= 0.25;
+    s3 = ` Self-check: you rated your own open-mindedness ${state.aot.toFixed(1)}/5. `+
+      (selfHigh === behHigh ? 'Your self-report and your measured behaviour agree.'
+        : selfHigh ? 'Your self-report was higher than your measured behaviour — the usual direction of the gap, and the interesting one.'
+        : 'Your measured behaviour was more open-minded than your self-report.');
+  }
+  return s1+s2+s3;
+}
+function moduleSummary(){
+  const aPts = bandPoints(state.aBand || 'poor');
+  const bPts = bandPoints(state.bBand || 'poor');
+  const cPts = bandPoints(state.cBand || 'poor');
+  const overall = (aPts+bPts+cPts)/3;
+  return {aPts,bPts,cPts,overall,band:overallBand(overall)};
+}
+function buildDebrief(){
+  const s = moduleSummary();
+  $('debriefresults').innerHTML = `<table>
+    <tr><th>Module</th><th>Result</th><th>Points</th></tr>
+    <tr><td>A — Evidence Stream</td>
+        <td>mean Brier ${state.aBrier===null?'—':state.aBrier.toFixed(3)} (${state.aBand}); search ratio ${state.aDiag?state.aDiag.search.toFixed(2):'—'}; asymmetry ${state.aDiag&&state.aDiag.asym!==null?state.aDiag.asym.toFixed(2):'n/a'}</td>
+        <td class="num">${s.aPts}</td></tr>
+    <tr><td>B — The Soros Reversal</td>
+        <td>P&amp;L ${state.bPnl.toFixed(1)} vs Anchored ${state.bots.anch.pnl.toFixed(1)} and Fallibilist ${state.bots.fall.pnl.toFixed(1)} (${state.bBand})</td>
+        <td class="num">${s.bPts}</td></tr>
+    <tr><td>C — Structuring the Room</td>
+        <td>best configuration mean Q = ${state.bestQ===null?'—':state.bestQ.toFixed(1)} (${state.cBand})</td>
+        <td class="num">${s.cPts}</td></tr>
+    <tr><td><strong>Overall</strong></td>
+        <td><span class="grade ${s.band.toLowerCase()}">${s.band}</span></td>
+        <td class="num">${s.overall.toFixed(0)}</td></tr>
+  </table>`;
+  $('dverdict').textContent = verdictText();
+}
+$('btn-copy').onclick = ()=>{
+  const s = moduleSummary();
+  const d = state.aDiag || {asym:null, search:0};
+  const txt = [
+    'BELIEF LAB — results (seed '+SEED+')',
+    'Module A: mean Brier '+(state.aBrier===null?'n/a':state.aBrier.toFixed(3))+' ('+state.aBand+'); search ratio '+d.search.toFixed(2)+'; asymmetry index '+(d.asym===null?'n/a':d.asym.toFixed(2)),
+    'Module B: P&L '+state.bPnl.toFixed(1)+' vs Anchored '+state.bots.anch.pnl.toFixed(1)+', Fallibilist '+state.bots.fall.pnl.toFixed(1)+' ('+state.bBand+')',
+    'Module C: best configuration mean Q '+(state.bestQ===null?'n/a':state.bestQ.toFixed(1))+' ('+state.cBand+')',
+    (state.aot!==null ? 'AOT self-check: '+state.aot.toFixed(1)+'/5' : 'AOT self-check: skipped'),
+    'Overall: '+s.overall.toFixed(0)+'/100 — '+s.band,
+    'Lesson: beliefs are hypotheses to be tested, not treasures to be guarded; and open-mindedness can be engineered structurally.'
+  ].join('\n');
+  const ta = document.createElement('textarea');
+  ta.value = txt; document.body.appendChild(ta); ta.select();
+  try{ document.execCommand('copy'); $('copynote').textContent='Copied to clipboard.'; }
+  catch(e){ $('copynote').textContent='Select and copy manually.'; }
+  document.body.removeChild(ta);
+  if(navigator.clipboard) navigator.clipboard.writeText(txt).catch(()=>{});
+};
+
+/* boot */
+resetAll();
+</script>
+</body>
+</html>

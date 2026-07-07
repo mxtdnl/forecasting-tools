@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fermi Forge — Breaking Big Questions Down</title>
+<style>
+  :root{
+    --bg:#10141a; --panel:#1a2029; --panel2:#232b37; --ink:#e8ecf1; --muted:#9aa7b5;
+    --accent:#4fa3d1; --accent2:#d1a44f; --good:#5fb37a; --warn:#d1774f; --line:#324153;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{background:var(--bg); color:var(--ink); font-family:Georgia,'Times New Roman',serif; line-height:1.55;}
+  .wrap{max-width:960px; margin:0 auto; padding:24px 20px 80px;}
+  header{border-bottom:1px solid var(--line); padding-bottom:14px; margin-bottom:20px;
+    display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:10px;}
+  h1{font-size:26px; letter-spacing:.5px;}
+  h1 small{display:block; font-size:13px; color:var(--muted); font-weight:normal; letter-spacing:.2px; margin-top:2px;}
+  h2{font-size:20px; margin-bottom:10px; color:var(--accent);}
+  h3{font-size:16px; margin:14px 0 6px; color:var(--accent2);}
+  p{margin-bottom:10px;}
+  .muted{color:var(--muted); font-size:14px;}
+  .small{font-size:13px;}
+  .seedbox{display:flex; align-items:center; gap:8px; font-family:'Courier New',monospace; font-size:14px;}
+  .seedbox input{width:90px; background:var(--panel2); color:var(--ink); border:1px solid var(--line);
+    padding:5px 8px; font-family:inherit; font-size:14px;}
+  .progress{display:flex; gap:6px; margin-bottom:18px; flex-wrap:wrap;}
+  .pstep{padding:4px 12px; font-size:12px; border:1px solid var(--line); color:var(--muted); letter-spacing:.5px;}
+  .pstep.active{border-color:var(--accent); color:var(--accent);}
+  .pstep.done{border-color:var(--good); color:var(--good);}
+  .card{background:var(--panel); border:1px solid var(--line); padding:20px 22px; margin-bottom:16px;}
+  .screen{display:none;}
+  .screen.visible{display:block;}
+  button{background:var(--panel2); color:var(--ink); border:1px solid var(--accent); padding:9px 20px;
+    font-family:inherit; font-size:15px; cursor:pointer;}
+  button:hover:not(:disabled){background:var(--accent); color:#0c1116;}
+  button:disabled{opacity:.35; cursor:not-allowed;}
+  button.primary{border-color:var(--accent2); font-weight:bold;}
+  button.primary:hover:not(:disabled){background:var(--accent2); color:#0c1116;}
+  .btnrow{margin-top:18px; display:flex; gap:12px; align-items:center; flex-wrap:wrap;}
+  .sliderrow{display:grid; grid-template-columns:280px 1fr 130px; gap:12px; align-items:center;
+    padding:8px 0; border-bottom:1px dotted var(--line);}
+  .sliderrow label{font-size:14px;}
+  .sliderrow .val{font-family:'Courier New',monospace; font-size:14px; text-align:right; color:var(--accent2);}
+  input[type=range]{width:100%; accent-color:var(--accent);}
+  input[type=number], input[type=text]{background:var(--panel2); color:var(--ink); border:1px solid var(--line);
+    padding:6px 8px; font-family:'Courier New',monospace; font-size:14px;}
+  canvas{display:block; background:#0c1015; border:1px solid var(--line); max-width:100%;}
+  /* fixed pixel heights per spec; draws occur behind a double requestAnimationFrame */
+  #a4canvas{height:260px;} #bcanvas{height:300px;} #brulercanvas{height:120px;}
+  #dhist{height:220px;} #dtornado{height:260px;}
+  .canvasbox{margin:12px 0;}
+  .canvasbox .cap{font-size:13px; color:var(--muted); margin-top:6px;}
+  .readout{font-family:'Courier New',monospace; font-size:17px; color:var(--accent2);
+    background:var(--panel2); border:1px solid var(--line); padding:10px 14px; margin:12px 0;}
+  .grade{display:inline-block; padding:2px 10px; border:1px solid; font-size:14px; letter-spacing:.5px;}
+  .grade.excellent{color:var(--good); border-color:var(--good);}
+  .grade.good{color:var(--accent); border-color:var(--accent);}
+  .grade.fair{color:var(--accent2); border-color:var(--accent2);}
+  .grade.poor{color:var(--warn); border-color:var(--warn);}
+  table{border-collapse:collapse; width:100%; margin:10px 0; font-size:14px;}
+  th,td{border:1px solid var(--line); padding:7px 10px; text-align:left;}
+  th{color:var(--muted); font-weight:normal; letter-spacing:.5px; font-size:12px; text-transform:uppercase;}
+  td.num{font-family:'Courier New',monospace; text-align:right;}
+  .cardbank{display:flex; flex-wrap:wrap; gap:10px; margin:12px 0;}
+  .qcard{background:var(--panel2); border:1px solid var(--line); padding:10px 12px; width:215px;
+    font-size:13px; cursor:grab; user-select:none;}
+  .qcard.selected{border-color:var(--accent2);}
+  .qcard.placed{opacity:.35; cursor:default;}
+  .slots{display:flex; gap:10px; margin:12px 0; flex-wrap:wrap;}
+  .slot{border:1px dashed var(--muted); width:215px; min-height:86px; padding:8px 10px; font-size:13px;
+    color:var(--muted); position:relative;}
+  .slot.filled{border-style:solid; border-color:var(--accent); color:var(--ink);}
+  .slot .rm{position:absolute; top:2px; right:6px; cursor:pointer; color:var(--warn); font-size:14px;}
+  .formula{font-family:'Courier New',monospace; font-size:13px; background:var(--panel2);
+    border-left:3px solid var(--accent); padding:8px 12px; margin:10px 0; overflow-x:auto;}
+  .dual{display:grid; grid-template-columns:250px 1fr 1fr 160px; gap:10px; align-items:center;
+    padding:6px 0; border-bottom:1px dotted var(--line); font-size:13px;}
+  .dual .val{font-family:'Courier New',monospace; text-align:right; color:var(--accent2); font-size:12px;}
+  .verdict{border-left:3px solid var(--accent2); padding:10px 14px; background:var(--panel2); margin:12px 0;}
+  .cite{font-size:13px; color:var(--muted); border-top:1px solid var(--line); margin-top:14px; padding-top:10px;}
+  .cite li{margin-left:18px; margin-bottom:4px;}
+  .lockline{color:var(--muted); font-size:13px; font-style:italic;}
+  @media (max-width:800px){ .sliderrow{grid-template-columns:1fr;} .dual{grid-template-columns:1fr 1fr;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Fermi Forge<small>Breaking big questions down — decomposition, error cancellation, sensitivity</small></h1>
+  <div class="seedbox">
+    <label for="seedInput">Seed</label>
+    <input id="seedInput" type="number" value="42" min="0" step="1">
+    <button id="seedApply" title="Restart the simulation with this seed">Apply</button>
+  </div>
+</header>
+
+<div class="progress" id="progress"></div>
+
+<!-- ============ INTRO ============ -->
+<div class="screen card" id="scr-intro">
+  <h2>Introduction</h2>
+  <p>Enrico Fermi was famous for producing usable estimates of quantities he could not possibly know — the number
+  of piano tuners in Chicago, the yield of the first atomic bomb — by decomposing an impossible question into a
+  chain of merely difficult ones. This simulation asks you to do the same, four times, with increasing freedom.</p>
+  <p>You will: (A) estimate the number of gas boiler service engineers in Greater London, first by intuition and
+  then by decomposition; (B) re-enact Fermi's Trinity paper-drop measurement; (C) decompose a geopolitical
+  question in the style of the Good Judgment Project; and (D) explore why the Drake equation is useful despite
+  producing no reliable answer.</p>
+  <p class="muted">All randomness is driven by the seed shown above. The same seed always reproduces the same run.</p>
+  <div class="btnrow"><button class="primary" id="btn-intro">Begin Module A</button></div>
+</div>
+
+<!-- ============ MODULE A1: direct guess ============ -->
+<div class="screen card" id="scr-a1">
+  <h2>Module A — Boiler Engineers of London</h2>
+  <p><strong>The question:</strong> how many gas boiler service engineers are working in Greater London?</p>
+  <p>Before any analysis: give your holistic, gut-feel answer on the slider below. It will be locked and
+  compared against your decomposed estimate later. Do not overthink it — that is the point.</p>
+  <div class="sliderrow">
+    <label for="a1slider">Direct guess (log scale, 1 to 100,000)</label>
+    <input type="range" id="a1slider" min="0" max="5" step="0.01" value="2.5">
+    <div class="val" id="a1val">316</div>
+  </div>
+  <div class="btnrow"><button class="primary" id="btn-a1">Lock guess and decompose</button></div>
+</div>
+
+<!-- ============ MODULE A2: decomposition ============ -->
+<div class="screen card" id="scr-a2">
+  <h2>Module A — Decomposition Chain</h2>
+  <p class="lockline" id="a2locked"></p>
+  <p>Now build the estimate from parts. Each factor is easier to reason about than the whole.
+  Adjust any slider; the chain recomputes live.</p>
+  <div id="a2sliders"></div>
+  <div class="formula">engineers = population ÷ persons-per-household × fraction-with-gas-boiler × services-per-boiler-per-year ÷ visits-per-engineer-per-year</div>
+  <div class="readout">Implied engineer count: <span id="a2readout">—</span></div>
+  <div class="btnrow"><button class="primary" id="btn-a2">Lock decomposed estimate</button></div>
+</div>
+
+<!-- ============ MODULE A3: reveal ============ -->
+<div class="screen card" id="scr-a3">
+  <h2>Module A — Reveal</h2>
+  <div id="a3table"></div>
+  <p><strong>A caution on the "reference" value.</strong> The Gas Safe Register reported 150,729 registered gas
+  engineers in the UK as at 31 March 2024 (<em>At a Glance Report 2023/24</em>, gassaferegister.co.uk, retrieved
+  July 2026). Scaling by Greater London's share of the UK population (~13%) gives roughly 19,700 registered
+  engineers, of whom perhaps half work chiefly on domestic boiler servicing — a reference of about
+  <strong>10,000</strong>. This reference is itself an estimate: registered engineers are not identical to active
+  London domestic-service engineers, exactly as Fermi's "true" count of Chicago piano tuners was soft. Fermi
+  estimates are judged on order of magnitude, and so are you.</p>
+  <p class="muted">Scoring: log error E = |log₁₀(estimate ÷ reference)|. E &lt; 0.5 excellent; 0.5–1.0 within an
+  order of magnitude (good); 1.0–1.5 fair; above 1.5 poor.</p>
+  <div class="btnrow">
+    <button id="btn-a4show">Why does this work?</button>
+    <button class="primary" id="btn-a3">Continue to Module B</button>
+  </div>
+  <div id="a4block" style="display:none;">
+    <h3>Error cancellation, demonstrated</h3>
+    <p class="small">Monte Carlo, n = 2,000 (seeded). Each of the five factors is perturbed by 10<sup>ε</sup>,
+    ε ~ Normal(0, 0.3). Left: the five errors are independent. Right: all five are biased the same way.</p>
+    <div class="canvasbox">
+      <canvas id="a4canvas" width="830" height="260"></canvas>
+      <div class="cap" id="a4cap"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODULE B: trinity ============ -->
+<div class="screen card" id="scr-b">
+  <h2>Module B — Trinity Paper Drop</h2>
+  <p>16 July 1945, 05:29. You stand 16 km from the Trinity test tower. Fermi, standing nearby, tears a sheet of
+  paper into small pieces. When the blast wave arrives — some 40 seconds after the flash — he drops them and
+  watches how far the wave carries them. From that single displacement he estimates the yield.</p>
+  <p><strong>Step 1.</strong> Press <em>Detonate</em>, then press <em>Drop papers</em> as the blast wave reaches
+  the observer. Dropping too early or too late means the papers fall at your feet before or after the wave passes.</p>
+  <div class="canvasbox">
+    <canvas id="bcanvas" width="830" height="300"></canvas>
+    <div class="cap">Side view (distances compressed for display). The observer stands at the right, 16 km from ground zero.</div>
+  </div>
+  <div class="btnrow">
+    <button id="btn-detonate">Detonate</button>
+    <button id="btn-drop" disabled>Drop papers</button>
+  </div>
+  <div id="bmeasure" style="display:none;">
+    <p><strong>Step 2.</strong> The papers have landed. Measure the lateral displacement from the drop point
+    (white marker) to the papers by dragging the ruler across the strip below.</p>
+    <div class="canvasbox">
+      <canvas id="brulercanvas" width="830" height="120"></canvas>
+      <div class="cap">Ground strip at the observer's feet. Drag from the drop marker to the papers. Readout: <span id="brulerval" style="color:var(--accent2); font-family:'Courier New',monospace;">0.0 m</span></div>
+    </div>
+    <p><strong>Step 3.</strong> Enter your measured displacement into the stated model.</p>
+    <div class="formula">yield_kt = 4 × displacement_m &nbsp;&nbsp;(calibrated so ~2.5 m → ≈ 10 kt)</div>
+    <div class="btnrow">
+      <label for="binput">Displacement (m):</label>
+      <input type="number" id="binput" step="0.1" min="0" style="width:90px;">
+      <button class="primary" id="btn-b">Compute yield and reveal</button>
+    </div>
+  </div>
+  <div id="breveal" style="display:none;"></div>
+</div>
+
+<!-- ============ MODULE C: geopolitical decomposition ============ -->
+<div class="screen card" id="scr-c">
+  <h2>Module C — Decompose a Geopolitical Question</h2>
+  <p><strong>The question:</strong> "Will an entrenched autocrat facing mass unrest fall within six months?"</p>
+  <p>A holistic answer to this question is a guess. A Good Judgment Project superforecaster would break it into
+  researchable sub-questions. From the bank of nine cards below, build a chain of the <strong>four</strong>
+  sub-questions you would actually research. Drag a card into a slot, or click a card and then a slot.</p>
+  <div class="slots" id="cslots"></div>
+  <div class="cardbank" id="cbank"></div>
+  <div class="btnrow"><button class="primary" id="btn-c1" disabled>Lock decomposition</button></div>
+  <div id="cprob" style="display:none;">
+    <h3>Assign probabilities</h3>
+    <p class="small">For each sub-question you chose, assign the probability that it resolves in the direction
+    that makes the autocrat's fall <em>more</em> likely.</p>
+    <div id="cprobsliders"></div>
+    <div class="formula" id="cformula"></div>
+    <div class="readout">Combined probability of fall within six months: <span id="creadout">—</span></div>
+    <p class="muted small">There is no "true answer" here and none is scored. Your score reflects decomposition
+    quality only: +25 per researchable sub-question, −10 per holistic distractor. The combination model shown
+    above is deliberately simple and fully visible — the discipline is in choosing what to research.</p>
+    <div class="btnrow"><button class="primary" id="btn-c2">Continue to Module D</button></div>
+  </div>
+</div>
+
+<!-- ============ MODULE D: drake ============ -->
+<div class="screen card" id="scr-d">
+  <h2>Module D — Drake Equation Uncertainty Tornado</h2>
+  <p>Frank Drake's 1961 Green Bank equation estimates N, the number of communicating civilisations in the galaxy,
+  as the product of seven factors. Its value is not the number it produces. Set a <em>range</em> (minimum and
+  maximum) for each factor; the simulation samples each factor log-uniformly within your range, 2,000 times.</p>
+  <div id="dsliders"></div>
+  <div class="btnrow"><button class="primary" id="btn-drun">Run Monte Carlo</button></div>
+  <div id="dresults" style="display:none;">
+    <div class="canvasbox">
+      <canvas id="dhist" width="830" height="220"></canvas>
+      <div class="cap" id="dhistcap"></div>
+    </div>
+    <div class="canvasbox">
+      <canvas id="dtornado" width="830" height="260"></canvas>
+      <div class="cap">Tornado chart: reduction in output log-variance when each factor is frozen at its median,
+      one at a time. The equation does not produce a reliable number; it makes explicit which factor drives the
+      uncertainty — and therefore which factor is worth researching.</div>
+    </div>
+    <p><strong>The payoff:</strong> pick the factor at the top of the tornado, narrow its range above, and run
+    again. Watch whether the output spread collapses. Then narrow a factor at the bottom and note the difference.</p>
+    <div class="btnrow"><button class="primary" id="btn-d">Continue to debrief</button></div>
+  </div>
+</div>
+
+<!-- ============ DEBRIEF ============ -->
+<div class="screen card" id="scr-debrief">
+  <h2>Debrief</h2>
+  <div id="debriefresults"></div>
+  <h3>The pedagogical point</h3>
+  <p>No individual estimate in this session needed to be accurate. The discipline lies in three places: the
+  <strong>decomposition</strong> itself (Module A and C — replacing one impossible question with several merely
+  difficult ones), the <strong>independence of errors</strong> (Module A's demonstrator — independent
+  overestimates and underestimates partially cancel, whereas correlated bias compounds), and
+  <strong>sensitivity analysis</strong> (Module D — knowing which factor to go and research). Module A is a
+  London-set restaging of Fermi's original Chicago piano-tuner problem, which remains the canonical statement of
+  the method: a household-owned asset, requiring periodic professional service, estimated through a chain of
+  household factors.</p>
+  <div class="cite">
+    <strong>Sources</strong>
+    <ul>
+      <li>Tetlock, P. &amp; Gardner, D. (2015), <em>Superforecasting</em>, ch. 5 (Fermi-isation; the Good Judgment Project).</li>
+      <li>Rhodes, R. (1986), <em>The Making of the Atomic Bomb</em>, Simon &amp; Schuster (Fermi's Trinity paper-drop estimate).</li>
+      <li>Drake, F. (1961), Green Bank conference (the Drake equation; see seti.org).</li>
+      <li>Gas Safe Register, <em>At a Glance Report 2023/24</em>: 150,729 registered engineers as at 31 March 2024 (gassaferegister.co.uk, retrieved July 2026; London reference derived by population scaling as described in Module A).</li>
+    </ul>
+  </div>
+  <div class="btnrow">
+    <button class="primary" id="btn-copy">Copy results</button>
+    <span class="muted small" id="copynote"></span>
+  </div>
+</div>
+
+</div>
+<script>
+'use strict';
+/* =====================================================================
+   MODEL — pure functions, no DOM. This section is extracted verbatim
+   and executed under Node.js for the calibration runs recorded below.
+   =====================================================================
+
+   CALIBRATION RECORD (run 2026-07-07, Node 22, by extracting this MODEL
+   section; script: calibrate_fermi.mjs)
+
+   1. Passive-path trace (seed 42, player accepts every default and
+      presses each primary button as soon as it is enabled):
+      - A1 direct guess: slider default 10^2.5 = 316
+        → E_direct = |log10(316/10000)| = 1.50 → "poor" band (not scored
+        into the overall grade; kept as the intuition-vs-decomposition
+        contrast).
+      - A2 decomposition with default sliders: 8,900,000 / 2.4 × 0.65
+        × 1.0 / 1000 = 2,410 engineers
+        → E_dec = |log10(2410/10000)| = 0.618 → "good" band → 70 pts.
+      - B passive: presses Detonate then Drop immediately at the flash;
+        the wave arrives long after the papers land → displacement
+        0.39 m → yield 4×0.4 = 1.6 kt vs 21 kt → ratio 13.1 → "poor"
+        → 10 pts. (Faithful play: drop at wave passage → 2.45 m →
+        9.6 kt → factor 2.2 of 21 kt → "good", the designed
+        excellent–good boundary.)
+      - C passive: fills the four slots with the first four cards in
+        bank order (bank order is fixed, not seed-shuffled, precisely so
+        this trace is stable): cards 1,2,3,4 = strong, distractor,
+        strong, distractor = +25 −10 +25 −10 = 30 pts.
+      - Overall = mean(70, 10, 30) = 36.7 → "Fair" (middle band).
+        Bands: ≥85 Excellent, 60–84.9 Good, 30–59.9 Fair, <30 Poor.
+        Passive play lands in Fair — a middle band, never the top band,
+        as required.
+
+   2. Module A error-cancellation Monte Carlo (n = 2,000, seed 42):
+      - independent factor errors: sd of final log10 error = 0.666
+        (theory 0.3·√5 = 0.671)
+      - perfectly correlated errors: sd = 1.534 (theory 0.3·5 = 1.5)
+
+   3. Module D tornado (default ranges, n = 2,000, first run uses
+      seed 42+1 = 43): total Var(log10 N) = 5.419; largest single
+      contribution is L (variance reduction 3.067 when frozen),
+      matching the analytic (log10(1e8/1e2))²/12 = 3.0; smallest is
+      f_p (0.107). L is the top factor on every seed tested
+      (43 and 1–10, reductions 2.78–3.18).
+
+   4. Determinism: two runs with seed 42 produce byte-identical MC
+      histograms, tornado orderings and Trinity displacement.
+   ===================================================================== */
+
+function mulberry32(seed){
+  let a = seed >>> 0;
+  return function(){
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+/* Box–Muller from a uniform PRNG */
+function makeNormal(rand){
+  let spare = null;
+  return function(){
+    if(spare !== null){ const v = spare; spare = null; return v; }
+    let u = 0, v = 0, s = 0;
+    do { u = rand()*2-1; v = rand()*2-1; s = u*u+v*v; } while(s === 0 || s >= 1);
+    const m = Math.sqrt(-2*Math.log(s)/s);
+    spare = v*m; return u*m;
+  };
+}
+
+const REFERENCE_ENGINEERS = 10000;   // derivation + caveat stated in Module A reveal copy
+
+function chainEstimate(pop, perHh, fracBoiler, servicesYr, visitsYr){
+  return pop / perHh * fracBoiler * servicesYr / visitsYr;
+}
+function logError(estimate, truth){ return Math.abs(Math.log10(estimate/truth)); }
+function logErrorBand(E){
+  if(E < 0.5) return 'excellent';
+  if(E < 1.0) return 'good';
+  if(E < 1.5) return 'fair';
+  return 'poor';
+}
+function bandPoints(band){ return {excellent:100, good:70, fair:40, poor:10}[band]; }
+
+/* Module A4: error-cancellation Monte Carlo. Returns two arrays of final
+   log10 errors, independent vs perfectly correlated (all five factor
+   errors biased the same way). n = 2000, seeded. */
+function errorCancellationMC(seed, n){
+  const rand = mulberry32(seed), normal = makeNormal(rand);
+  const indep = [], corr = [];
+  for(let i=0;i<n;i++){
+    let s = 0;
+    for(let k=0;k<5;k++) s += normal()*0.3;   // independent: sd 0.3·√5 ≈ 0.67
+    indep.push(s);
+    corr.push(normal()*0.3*5);                // same-direction bias: sd 0.3·5 = 1.5
+  }
+  return {indep, corr};
+}
+
+/* Module B: physical displacement of the papers given drop time.
+   Wave reaches the observer at waveArrival (s, display time). Papers
+   are airborne for AIRTIME s after the drop. Displacement is maximal
+   (~2.5 m) when the wave passes while they are airborne, and decays to
+   a residual ground-scatter value when mistimed. Small seeded noise. */
+const B_AIRTIME = 1.4;         // seconds of display time the papers fall
+const B_TRUE_DISP = 2.5;       // metres, faithful Fermi value
+function paperDisplacement(dropTime, waveArrival, seed){
+  const rand = mulberry32(seed + 1000);
+  const noise = 0.95 + rand()*0.10;               // ±5%
+  const overlapCentre = waveArrival - B_AIRTIME/2; // ideal drop moment
+  const off = Math.abs(dropTime - overlapCentre);
+  let frac;
+  if(off <= B_AIRTIME/2) frac = 1.0;               // wave passes mid-fall
+  else frac = Math.max(0.16, 1.0 - 0.55*(off - B_AIRTIME/2)); // decays to ground-scatter
+  return B_TRUE_DISP * frac * noise;
+}
+function yieldFromDisplacement(d){ return 4*d; }   // k = 4 kt/m: 2.5 m → 10 kt
+const B_INSTRUMENTED_KT = 21;
+function yieldBand(y){
+  if(y <= 0) return 'poor';
+  const f = Math.max(y, B_INSTRUMENTED_KT) / Math.max(1e-9, Math.min(y, B_INSTRUMENTED_KT));
+  if(f <= 2) return 'excellent';
+  if(f <= 3) return 'good';
+  if(f <= 5) return 'fair';
+  return 'poor';
+}
+
+/* Module C cards. Bank order is FIXED (not shuffled) so the passive
+   trace — first four cards in order — is stable: strong, distractor,
+   strong, distractor. */
+const C_CARDS = [
+  {t:'What is the capability and incentive of regime insiders (army, security services) to defect?', strong:true},
+  {t:'Does he seem confident on television?', strong:false},
+  {t:'What triggering events (a massacre order refused, a capital-city general strike) would be required, and how likely is each?', strong:true},
+  {t:'What does my gut say?', strong:false},
+  {t:'What is the historical base rate of autocrat survival under comparable mass unrest?', strong:true},
+  {t:'What are pundits predicting?', strong:false},
+  {t:'What have external actors committed to doing, and does that commitment hold?', strong:true},
+  {t:'Is the situation bad?', strong:false},
+  {t:'What is the historical destiny of the region?', strong:false}
+];
+function cScore(chosenIdx){
+  let s = 0;
+  for(const i of chosenIdx) s += C_CARDS[i].strong ? 25 : -10;
+  return Math.max(0, s);
+}
+/* Stated combination model, displayed verbatim in the app */
+function cCombine(chosenIdx, probs){
+  let L = 0;
+  for(let k=0;k<chosenIdx.length;k++){
+    const w = C_CARDS[chosenIdx[k]].strong ? 1.0 : 0.25;
+    L += w * (probs[k] - 0.5);
+  }
+  return 1/(1+Math.exp(-4*L));
+}
+
+/* Module D: Drake factors, default log10 ranges */
+const D_FACTORS = [
+  {name:'R* — star formation rate (stars/yr)',        lo:0,   hi:1.7,  min:-1, max:2.5},
+  {name:'f_p — fraction of stars with planets',       lo:-1,  hi:0,    min:-3, max:0},
+  {name:'n_e — habitable planets per system',         lo:-1,  hi:0.7,  min:-3, max:1},
+  {name:'f_l — fraction developing life',             lo:-3,  hi:0,    min:-6, max:0},
+  {name:'f_i — fraction developing intelligence',     lo:-3,  hi:0,    min:-6, max:0},
+  {name:'f_c — fraction developing detectable tech',  lo:-2,  hi:0,    min:-4, max:0},
+  {name:'L — civilisation lifetime (yr)',             lo:2,   hi:8,    min:1,  max:10}
+];
+function drakeMC(seed, n, ranges){
+  const rand = mulberry32(seed);
+  const logs = [];   // per-sample per-factor log10 values
+  const out = [];
+  for(let i=0;i<n;i++){
+    const row = [];
+    let s = 0;
+    for(let k=0;k<7;k++){
+      const v = ranges[k].lo + rand()*(ranges[k].hi - ranges[k].lo);
+      row.push(v); s += v;
+    }
+    logs.push(row); out.push(s);   // log10 N = Σ log10 f_k
+  }
+  return {logs, out};
+}
+function variance(a){
+  const m = a.reduce((x,y)=>x+y,0)/a.length;
+  return a.reduce((x,y)=>x+(y-m)*(y-m),0)/a.length;
+}
+/* one-at-a-time freezing: fix factor k at its range median, recompute
+   output variance from the same sample, report the reduction */
+function tornado(mc, ranges){
+  const vFull = variance(mc.out);
+  const red = [];
+  for(let k=0;k<7;k++){
+    const med = (ranges[k].lo + ranges[k].hi)/2;
+    const frozen = mc.out.map((s,i)=> s - mc.logs[i][k] + med);
+    red.push({k, reduction: vFull - variance(frozen)});
+  }
+  red.sort((a,b)=>b.reduction-a.reduction);
+  return {vFull, red};
+}
+
+function overallBand(pts){
+  if(pts >= 85) return 'Excellent';
+  if(pts >= 60) return 'Good';
+  if(pts >= 30) return 'Fair';
+  return 'Poor';
+}
+/* ===================== END MODEL ===================== */
+
+/* ===================== UI ===================== */
+const $ = id => document.getElementById(id);
+const fmt = x => x >= 100 ? Math.round(x).toLocaleString('en-GB')
+                : x >= 1 ? x.toPrecision(3) : x.toPrecision(2);
+/* all canvas draws behind a double requestAnimationFrame so layout has settled */
+function draw2(fn){ requestAnimationFrame(()=>requestAnimationFrame(fn)); }
+
+let SEED = 42;
+const state = {
+  directGuess:null, decEstimate:null, aBand:null, aDirBand:null,
+  bDisp:null, bEntered:null, bYield:null, bBand:null,
+  cChosen:[], cPts:null, cProb:null,
+  dRuns:0, dTop:null,
+  screen:'intro'
+};
+
+const SCREENS = ['intro','a1','a2','a3','b','c','d','debrief'];
+const STEPLABELS = {intro:'Intro', a1:'A · Guess', a2:'A · Decompose', a3:'A · Reveal',
+  b:'B · Trinity', c:'C · Geopolitics', d:'D · Drake', debrief:'Debrief'};
+function show(name){
+  state.screen = name;
+  SCREENS.forEach(s=>$('scr-'+s).classList.toggle('visible', s===name));
+  const idx = SCREENS.indexOf(name);
+  $('progress').innerHTML = SCREENS.map((s,i)=>
+    `<div class="pstep ${i<idx?'done':i===idx?'active':''}">${STEPLABELS[s]}</div>`).join('');
+  window.scrollTo(0,0);
+}
+
+$('seedApply').onclick = ()=>{ SEED = (parseInt($('seedInput').value,10)||0)>>>0; location.hash=''; resetAll(); };
+function resetAll(){
+  Object.assign(state,{directGuess:null,decEstimate:null,aBand:null,aDirBand:null,bDisp:null,
+    bEntered:null,bYield:null,bBand:null,cChosen:[],cPts:null,cProb:null,dRuns:0,dTop:null});
+  $('a1slider').value = 2.5; a1update();
+  buildA2(); buildC(); buildD();
+  $('a4block').style.display='none';
+  $('bmeasure').style.display='none'; $('breveal').style.display='none';
+  $('btn-drop').disabled = true; $('btn-detonate').disabled = false;
+  $('cprob').style.display='none';
+  $('dresults').style.display='none';
+  bResetAnim();
+  show('intro');
+}
+
+/* ---------- A1 ---------- */
+function a1update(){ $('a1val').textContent = fmt(Math.pow(10, parseFloat($('a1slider').value))); }
+$('a1slider').oninput = a1update;
+$('btn-intro').onclick = ()=> show('a1');
+$('btn-a1').onclick = ()=>{
+  state.directGuess = Math.pow(10, parseFloat($('a1slider').value));
+  $('a2locked').textContent = `Your direct guess is locked at ${fmt(state.directGuess)} engineers.`;
+  show('a2');
+};
+
+/* ---------- A2 ---------- */
+const A2 = [
+  {label:'Greater London population (anchor: ~8.9m)', lo:6.5, hi:7.5, def:Math.log10(8.9e6), unit:''},
+  {label:'Persons per household', lo:Math.log10(1.4), hi:Math.log10(5), def:Math.log10(2.4), unit:''},
+  {label:'Fraction of households with a gas boiler', lo:-0.9, hi:0, def:Math.log10(0.65), unit:''},
+  {label:'Professional services/repairs per boiler per year', lo:Math.log10(0.2), hi:Math.log10(3), def:0, unit:''},
+  {label:'Service visits one engineer completes per year', lo:Math.log10(200), hi:Math.log10(3000), def:3, unit:''}
+];
+function buildA2(){
+  $('a2sliders').innerHTML = A2.map((f,i)=>`
+    <div class="sliderrow">
+      <label for="a2s${i}">${f.label}</label>
+      <input type="range" id="a2s${i}" min="${f.lo}" max="${f.hi}" step="0.005" value="${f.def}">
+      <div class="val" id="a2v${i}"></div>
+    </div>`).join('');
+  A2.forEach((f,i)=>{ $('a2s'+i).oninput = a2update; });
+  a2update();
+}
+function a2vals(){ return A2.map((f,i)=>Math.pow(10, parseFloat($('a2s'+i).value))); }
+function a2update(){
+  const v = a2vals();
+  v.forEach((x,i)=>$('a2v'+i).textContent = fmt(x));
+  $('a2readout').textContent = fmt(chainEstimate(...v));
+}
+$('btn-a2').onclick = ()=>{
+  state.decEstimate = chainEstimate(...a2vals());
+  const Ed = logError(state.directGuess, REFERENCE_ENGINEERS);
+  const Ec = logError(state.decEstimate, REFERENCE_ENGINEERS);
+  state.aDirBand = logErrorBand(Ed); state.aBand = logErrorBand(Ec);
+  $('a3table').innerHTML = `<table>
+    <tr><th></th><th>Estimate</th><th>Log error E</th><th>Band</th></tr>
+    <tr><td>Direct guess</td><td class="num">${fmt(state.directGuess)}</td>
+        <td class="num">${Ed.toFixed(2)}</td><td><span class="grade ${state.aDirBand}">${state.aDirBand}</span></td></tr>
+    <tr><td>Decomposed estimate</td><td class="num">${fmt(state.decEstimate)}</td>
+        <td class="num">${Ec.toFixed(2)}</td><td><span class="grade ${state.aBand}">${state.aBand}</span></td></tr>
+    <tr><td>Reference (see caution below)</td><td class="num">${fmt(REFERENCE_ENGINEERS)}</td>
+        <td class="num">—</td><td>—</td></tr></table>`;
+  show('a3');
+};
+$('btn-a4show').onclick = ()=>{
+  $('a4block').style.display='block';
+  const mc = errorCancellationMC(SEED, 2000);
+  draw2(()=>drawA4(mc));
+};
+function sd(a){ return Math.sqrt(variance(a)); }
+function drawA4(mc){
+  const c = $('a4canvas'), g = c.getContext('2d');
+  g.clearRect(0,0,c.width,c.height);
+  const panels = [{d:mc.indep, x:20, t:'Independent errors'},{d:mc.corr, x:430, t:'Correlated (same-direction) errors'}];
+  const XMIN=-4, XMAX=4, BINS=40, W=380, H=190, Y0=220;
+  for(const p of panels){
+    const bins = new Array(BINS).fill(0);
+    for(const v of p.d){
+      const b = Math.floor((v-XMIN)/(XMAX-XMIN)*BINS);
+      if(b>=0 && b<BINS) bins[b]++;
+    }
+    const mx = Math.max(...bins);
+    g.strokeStyle='#324153'; g.beginPath(); g.moveTo(p.x,Y0); g.lineTo(p.x+W,Y0); g.stroke();
+    for(let b=0;b<BINS;b++){
+      const h = bins[b]/mx*H;
+      g.fillStyle = p===panels[0] ? '#4fa3d1' : '#d1774f';
+      g.fillRect(p.x + b*(W/BINS), Y0-h, W/BINS-1, h);
+    }
+    g.fillStyle='#e8ecf1'; g.font='13px Georgia';
+    g.fillText(`${p.t} — sd of log₁₀ error: ${sd(p.d).toFixed(2)}`, p.x, 16);
+    g.fillStyle='#9aa7b5'; g.font='11px Georgia';
+    for(const t of [-3,-2,-1,0,1,2,3]){
+      const tx = p.x + (t-XMIN)/(XMAX-XMIN)*W;
+      g.fillText(String(t), tx-3, Y0+14);
+      g.strokeStyle='#232b37'; g.beginPath(); g.moveTo(tx,Y0); g.lineTo(tx,Y0-H); g.stroke();
+    }
+  }
+  $('a4cap').textContent = 'Final-estimate log₁₀ error across 2,000 trials. Independent overestimates and '+
+    'underestimates partially cancel (spread ≈ 0.3·√5 ≈ 0.67); correlated bias does not cancel (spread ≈ 0.3·5 = 1.5). '+
+    'This is why a decomposed estimate built from independently-erring factors beats a single holistic guess.';
+}
+$('btn-a3').onclick = ()=> show('b');
+
+/* ---------- B ---------- */
+const B_WAVE_ARRIVAL = 6.0;   // display seconds after detonation
+let bAnim = {running:false, t0:null, dropped:false, dropTime:null, done:false, papers:[]};
+function bResetAnim(){ bAnim = {running:false, t0:null, dropped:false, dropTime:null, done:false, papers:[]}; draw2(drawBScene); }
+function bNow(){ return (performance.now() - bAnim.t0)/1000; }
+$('btn-detonate').onclick = ()=>{
+  $('btn-detonate').disabled = true; $('btn-drop').disabled = false;
+  bAnim.running = true; bAnim.t0 = performance.now();
+  requestAnimationFrame(bLoop);
+};
+$('btn-drop').onclick = ()=>{
+  if(!bAnim.running || bAnim.dropped) return;
+  bAnim.dropped = true; bAnim.dropTime = bNow();
+  $('btn-drop').disabled = true;
+};
+function bLoop(){
+  drawBScene();
+  const t = bNow();
+  if(bAnim.dropped && !bAnim.done && t > bAnim.dropTime + B_AIRTIME + 0.5 && t > B_WAVE_ARRIVAL + 1.2){
+    bAnim.done = true; bAnim.running = false;
+    state.bDisp = Math.round(paperDisplacement(bAnim.dropTime, B_WAVE_ARRIVAL, SEED)*10)/10;
+    $('bmeasure').style.display = 'block';
+    draw2(drawRuler);
+    return;
+  }
+  if(t > 10 && !bAnim.dropped){ // never dropped: wave long gone; allow late drop scoring
+    bAnim.dropped = true; bAnim.dropTime = 10;
+  }
+  if(bAnim.running) requestAnimationFrame(bLoop);
+}
+function drawBScene(){
+  const c = $('bcanvas'), g = c.getContext('2d');
+  const W=c.width, H=c.height, GROUND=H-40, GZX=70, OBX=W-90;
+  g.clearRect(0,0,W,H);
+  // sky gradient
+  const grad = g.createLinearGradient(0,0,0,GROUND);
+  grad.addColorStop(0,'#0a0e14'); grad.addColorStop(1,'#1a1d18');
+  g.fillStyle=grad; g.fillRect(0,0,W,GROUND);
+  g.fillStyle='#2e2a20'; g.fillRect(0,GROUND,W,H-GROUND);
+  // distance markers
+  g.fillStyle='#9aa7b5'; g.font='11px Georgia';
+  g.fillText('ground zero', GZX-30, GROUND+26);
+  g.fillText('observer · 16 km', OBX-40, GROUND+26);
+  // tower
+  g.strokeStyle='#556'; g.beginPath(); g.moveTo(GZX,GROUND); g.lineTo(GZX,GROUND-55); g.stroke();
+  // observer figure
+  g.strokeStyle='#c9d4df'; g.lineWidth=2; g.beginPath();
+  g.moveTo(OBX,GROUND); g.lineTo(OBX,GROUND-26);            // body
+  g.moveTo(OBX,GROUND-26); g.lineTo(OBX-9,GROUND-14);       // arm holding papers
+  g.moveTo(OBX,GROUND-20); g.lineTo(OBX+7,GROUND-10);
+  g.stroke();
+  g.beginPath(); g.arc(OBX,GROUND-32,6,0,Math.PI*2); g.stroke(); g.lineWidth=1;
+  const t = bAnim.running || bAnim.done ? bNow() : -1;
+  if(t >= 0){
+    // flash
+    if(t < 0.8){
+      g.fillStyle = `rgba(255,240,200,${(0.8-t)/0.8})`;
+      g.beginPath(); g.arc(GZX, GROUND-60, 40+t*160, 0, Math.PI*2); g.fill();
+    }
+    // rising column
+    if(t >= 0.4){
+      const h = Math.min(120, (t-0.4)*28);
+      g.fillStyle='rgba(200,160,110,0.5)';
+      g.beginPath(); g.arc(GZX, GROUND-60-h, 18+h*0.35, 0, Math.PI*2); g.fill();
+      g.fillRect(GZX-8, GROUND-60-h, 16, h+30);
+    }
+    // blast wave arc
+    if(t > 0.3 && t < B_WAVE_ARRIVAL + 3){
+      const r = (t-0.3)/(B_WAVE_ARRIVAL-0.3) * (OBX-GZX);
+      g.strokeStyle='rgba(232,236,241,0.8)'; g.lineWidth=2.5;
+      g.beginPath(); g.arc(GZX, GROUND, r, -Math.PI*0.5, 0); g.stroke(); g.lineWidth=1;
+    }
+    // papers
+    if(bAnim.dropped){
+      const dt = t - bAnim.dropTime;
+      const disp = paperDisplacement(bAnim.dropTime, B_WAVE_ARRIVAL, SEED);
+      const PX_PER_M = 6; // cosmetic only; measurement happens on the ruler strip
+      for(let i=0;i<6;i++){
+        const frac = Math.min(1, dt/B_AIRTIME);
+        const y = GROUND-14 + frac*14 - Math.sin(frac*Math.PI)*4;
+        const wavePassed = t > B_WAVE_ARRIVAL;
+        const x = OBX-9 + (wavePassed||frac>0.3 ? frac*disp*PX_PER_M*(0.8+i*0.08) : 0) + i*2;
+        g.fillStyle='#e8ecf1';
+        g.fillRect(x, Math.min(y,GROUND-2), 3, 2);
+      }
+    }
+    // status line
+    g.fillStyle='#9aa7b5'; g.font='12px Georgia';
+    let msg;
+    if(t < B_WAVE_ARRIVAL) msg = `Blast wave travelling… arrives at the observer shortly.`;
+    else msg = 'The wave has passed the observer.';
+    if(bAnim.dropped) msg += '  Papers dropped.';
+    g.fillText(msg, 20, 20);
+  } else {
+    g.fillStyle='#9aa7b5'; g.font='12px Georgia';
+    g.fillText('Press Detonate to begin.', 20, 20);
+  }
+}
+/* ruler strip: 1 m = 120 px */
+const RUL_PX_PER_M = 120, RUL_ORIGIN = 60;
+let ruler = {dragging:false, x0:null, x1:null};
+function drawRuler(){
+  const c = $('brulercanvas'), g = c.getContext('2d');
+  g.clearRect(0,0,c.width,c.height);
+  g.fillStyle='#221f18'; g.fillRect(0,0,c.width,c.height);
+  // metre gridlines (unlabelled fine ticks every 10 cm)
+  for(let px=RUL_ORIGIN; px<c.width; px+=RUL_PX_PER_M/10){
+    g.strokeStyle = ((px-RUL_ORIGIN)%RUL_PX_PER_M===0) ? '#3a4656' : '#232b37';
+    g.beginPath(); g.moveTo(px,90); g.lineTo(px,120); g.stroke();
+  }
+  // drop marker
+  g.fillStyle='#e8ecf1'; g.fillRect(RUL_ORIGIN-1, 20, 2, 80);
+  g.font='11px Georgia'; g.fillStyle='#9aa7b5'; g.fillText('drop point', RUL_ORIGIN-25, 14);
+  // papers at true displacement
+  if(state.bDisp !== null){
+    const rand = mulberry32(SEED+2000);
+    for(let i=0;i<6;i++){
+      const x = RUL_ORIGIN + state.bDisp*RUL_PX_PER_M + (rand()-0.5)*14;
+      const y = 55 + (rand()-0.5)*40;
+      const a = rand()*Math.PI;
+      const cg = $('brulercanvas').getContext('2d');
+      cg.save(); cg.translate(x,y); cg.rotate(a);
+      cg.fillStyle='#dfe6ee'; cg.fillRect(-4,-3,8,6); cg.restore();
+    }
+  }
+  // ruler line
+  if(ruler.x0 !== null && ruler.x1 !== null){
+    g.strokeStyle='#d1a44f'; g.lineWidth=2;
+    g.beginPath(); g.moveTo(ruler.x0,60); g.lineTo(ruler.x1,60); g.stroke();
+    g.beginPath(); g.moveTo(ruler.x0,52); g.lineTo(ruler.x0,68); g.moveTo(ruler.x1,52); g.lineTo(ruler.x1,68); g.stroke();
+    g.lineWidth=1;
+    const m = Math.abs(ruler.x1-ruler.x0)/RUL_PX_PER_M;
+    $('brulerval').textContent = m.toFixed(1)+' m';
+  }
+}
+function rulerPos(ev){
+  const r = $('brulercanvas').getBoundingClientRect();
+  const scale = $('brulercanvas').width / r.width;
+  return ((ev.touches?ev.touches[0].clientX:ev.clientX) - r.left) * scale;
+}
+$('brulercanvas').addEventListener('mousedown', ev=>{ ruler.dragging=true; ruler.x0=rulerPos(ev); ruler.x1=ruler.x0; drawRuler(); });
+$('brulercanvas').addEventListener('mousemove', ev=>{ if(ruler.dragging){ ruler.x1=rulerPos(ev); drawRuler(); } });
+window.addEventListener('mouseup', ()=>{ ruler.dragging=false; });
+$('btn-b').onclick = ()=>{
+  const d = parseFloat($('binput').value);
+  if(isNaN(d) || d < 0){ $('binput').style.borderColor='#d1774f'; return; }
+  state.bEntered = d;
+  state.bYield = yieldFromDisplacement(d);
+  state.bBand = yieldBand(state.bYield);
+  $('breveal').style.display='block';
+  $('breveal').innerHTML = `
+    <h3>Reveal</h3>
+    <table>
+      <tr><th></th><th>Value</th></tr>
+      <tr><td>Your measured displacement</td><td class="num">${d.toFixed(1)} m</td></tr>
+      <tr><td>Your yield estimate (4 × d)</td><td class="num">${state.bYield.toFixed(1)} kt</td></tr>
+      <tr><td>Fermi's estimate, 16 July 1945</td><td class="num">≈ 10 kt</td></tr>
+      <tr><td>Instrumented value</td><td class="num">≈ 21 kt</td></tr>
+      <tr><td>Band</td><td><span class="grade ${state.bBand}">${state.bBand}</span></td></tr>
+    </table>
+    <p>Fermi's crude paper-drop landed within a factor of two of the instrumented value, days before the formal
+    blast-gauge analysis. The formula used here (yield = 4 × displacement) is a pedagogical simplification of
+    Fermi's actual back-of-envelope physics, calibrated to reproduce his numbers. Source: Rhodes, R. (1986),
+    <em>The Making of the Atomic Bomb</em>, Simon &amp; Schuster.</p>
+    <p class="muted small">Scoring: within a factor of 2 of 21 kt = excellent; factor of 3 = good; factor of 5 = fair; otherwise poor.</p>
+    <div class="btnrow"><button class="primary" id="btn-b2">Continue to Module C</button></div>`;
+  $('btn-b2').onclick = ()=> show('c');
+};
+
+/* ---------- C ---------- */
+let cSelected = null;
+function buildC(){
+  $('cslots').innerHTML = [0,1,2,3].map(i=>
+    `<div class="slot" data-slot="${i}" id="cslot${i}">Slot ${i+1} — drop a sub-question here</div>`).join('');
+  $('cbank').innerHTML = C_CARDS.map((c,i)=>
+    `<div class="qcard" draggable="true" data-card="${i}" id="ccard${i}">${c.t}</div>`).join('');
+  state.cChosen = [null,null,null,null];
+  C_CARDS.forEach((c,i)=>{
+    const el = $('ccard'+i);
+    el.ondragstart = ev=>{ ev.dataTransfer.setData('text/plain', String(i)); };
+    el.onclick = ()=>{
+      if(el.classList.contains('placed')) return;
+      document.querySelectorAll('.qcard').forEach(q=>q.classList.remove('selected'));
+      el.classList.add('selected'); cSelected = i;
+    };
+  });
+  [0,1,2,3].forEach(s=>{
+    const slot = $('cslot'+s);
+    slot.ondragover = ev=>ev.preventDefault();
+    slot.ondrop = ev=>{ ev.preventDefault(); placeCard(parseInt(ev.dataTransfer.getData('text/plain'),10), s); };
+    slot.onclick = ()=>{ if(cSelected!==null) placeCard(cSelected, s); };
+  });
+  cRefresh();
+}
+function placeCard(cardIdx, slotIdx){
+  if(isNaN(cardIdx) || $('ccard'+cardIdx).classList.contains('placed')) return;
+  if(state.cChosen[slotIdx] !== null) removeCard(slotIdx);
+  state.cChosen[slotIdx] = cardIdx;
+  cSelected = null;
+  document.querySelectorAll('.qcard').forEach(q=>q.classList.remove('selected'));
+  cRefresh();
+}
+function removeCard(slotIdx){
+  const c = state.cChosen[slotIdx];
+  if(c !== null){ state.cChosen[slotIdx] = null; }
+  cRefresh();
+}
+function cRefresh(){
+  [0,1,2,3].forEach(s=>{
+    const slot = $('cslot'+s), c = state.cChosen[s];
+    if(c === null){ slot.className='slot'; slot.innerHTML = `Slot ${s+1} — drop a sub-question here`; }
+    else{
+      slot.className='slot filled';
+      slot.innerHTML = `<span class="rm" data-s="${s}" title="Remove">×</span>${C_CARDS[c].t}`;
+      slot.querySelector('.rm').onclick = ev=>{ ev.stopPropagation(); removeCard(s); };
+    }
+  });
+  C_CARDS.forEach((c,i)=> $('ccard'+i).classList.toggle('placed', state.cChosen.includes(i)));
+  $('btn-c1').disabled = state.cChosen.includes(null);
+}
+$('btn-c1').onclick = ()=>{
+  state.cPts = cScore(state.cChosen);
+  $('btn-c1').disabled = true;
+  document.querySelectorAll('.qcard').forEach(q=>{ q.draggable=false; q.onclick=null; });
+  document.querySelectorAll('.slot .rm').forEach(r=>r.remove());
+  $('cprob').style.display='block';
+  $('cprobsliders').innerHTML = state.cChosen.map((c,k)=>`
+    <div class="sliderrow">
+      <label>${C_CARDS[c].t}</label>
+      <input type="range" id="cp${k}" min="1" max="99" value="50">
+      <div class="val" id="cpv${k}">50%</div>
+    </div>`).join('');
+  $('cformula').textContent = 'P(fall) = logistic(4 × Σ wᵢ·(pᵢ − 0.5)),  where wᵢ = 1 for a researchable sub-question, 0.25 for a holistic one; logistic(x) = 1/(1+e^(−x))';
+  const upd = ()=>{
+    const probs = state.cChosen.map((c,k)=>{ const v=parseInt($('cp'+k).value,10)/100; $('cpv'+k).textContent=Math.round(v*100)+'%'; return v; });
+    state.cProb = cCombine(state.cChosen, probs);
+    $('creadout').textContent = Math.round(state.cProb*100)+'%';
+  };
+  state.cChosen.forEach((c,k)=> $('cp'+k).oninput = upd);
+  upd();
+};
+$('btn-c2').onclick = ()=> show('d');
+
+/* ---------- D ---------- */
+let dRanges = null, dLastTornado = null;
+function buildD(){
+  dRanges = D_FACTORS.map(f=>({lo:f.lo, hi:f.hi}));
+  $('dsliders').innerHTML = D_FACTORS.map((f,i)=>`
+    <div class="dual">
+      <label>${f.name}</label>
+      <div><span class="small muted">min</span> <input type="range" id="dlo${i}" min="${f.min}" max="${f.max}" step="0.1" value="${f.lo}" style="width:80%"></div>
+      <div><span class="small muted">max</span> <input type="range" id="dhi${i}" min="${f.min}" max="${f.max}" step="0.1" value="${f.hi}" style="width:80%"></div>
+      <div class="val" id="dv${i}"></div>
+    </div>`).join('');
+  D_FACTORS.forEach((f,i)=>{
+    const upd = ()=>{
+      let lo = parseFloat($('dlo'+i).value), hi = parseFloat($('dhi'+i).value);
+      if(lo > hi){ [lo,hi] = [hi,lo]; }
+      dRanges[i] = {lo, hi};
+      $('dv'+i).textContent = `10^${lo.toFixed(1)} – 10^${hi.toFixed(1)}`;
+    };
+    $('dlo'+i).oninput = upd; $('dhi'+i).oninput = upd; upd();
+  });
+}
+$('btn-drun').onclick = ()=>{
+  state.dRuns++;
+  const mc = drakeMC(SEED + state.dRuns, 2000, dRanges);
+  const t = tornado(mc, dRanges);
+  dLastTornado = t;
+  state.dTop = D_FACTORS[t.red[0].k].name;
+  $('dresults').style.display='block';
+  draw2(()=>{ drawDHist(mc); drawDTornado(t); });
+};
+function drawDHist(mc){
+  const c = $('dhist'), g = c.getContext('2d');
+  g.clearRect(0,0,c.width,c.height);
+  const XMIN=-14, XMAX=8, BINS=44, W=770, X0=40, H=160, Y0=190;
+  const bins = new Array(BINS).fill(0);
+  for(const v of mc.out){
+    const b = Math.floor((v-XMIN)/(XMAX-XMIN)*BINS);
+    if(b>=0&&b<BINS) bins[b]++;
+  }
+  const mx = Math.max(...bins,1);
+  for(let b=0;b<BINS;b++){
+    g.fillStyle='#4fa3d1';
+    g.fillRect(X0+b*(W/BINS), Y0-bins[b]/mx*H, W/BINS-1, bins[b]/mx*H);
+  }
+  g.strokeStyle='#324153'; g.beginPath(); g.moveTo(X0,Y0); g.lineTo(X0+W,Y0); g.stroke();
+  g.fillStyle='#9aa7b5'; g.font='11px Georgia';
+  for(let t=XMIN;t<=XMAX;t+=2){
+    const tx = X0+(t-XMIN)/(XMAX-XMIN)*W;
+    g.fillText('10^'+t, tx-10, Y0+14);
+  }
+  const m = mc.out.reduce((a,b)=>a+b,0)/mc.out.length;
+  $('dhistcap').textContent = `Histogram of N (log axis), n = 2,000. Median ≈ 10^${m.toFixed(1)}; `+
+    `spread (sd of log₁₀ N) = ${Math.sqrt(variance(mc.out)).toFixed(2)} orders of magnitude.`;
+  g.fillStyle='#e8ecf1'; g.font='13px Georgia';
+  g.fillText('N — number of communicating civilisations', X0, 16);
+}
+function drawDTornado(t){
+  const c = $('dtornado'), g = c.getContext('2d');
+  g.clearRect(0,0,c.width,c.height);
+  const X0=330, W=440, rowH=30;
+  const mx = Math.max(...t.red.map(r=>r.reduction), 1e-9);
+  g.font='12px Georgia';
+  t.red.forEach((r,row)=>{
+    const y = 30+row*rowH;
+    g.fillStyle='#9aa7b5';
+    g.fillText(D_FACTORS[r.k].name, 10, y+14);
+    g.fillStyle = row===0 ? '#d1a44f' : '#4fa3d1';
+    g.fillRect(X0, y, Math.max(2, r.reduction/mx*W), rowH-10);
+    g.fillStyle='#e8ecf1';
+    g.fillText(r.reduction.toFixed(2), X0 + Math.max(2,r.reduction/mx*W) + 6, y+14);
+  });
+  g.fillStyle='#e8ecf1'; g.font='13px Georgia';
+  g.fillText(`Variance contribution (total Var(log₁₀N) = ${t.vFull.toFixed(2)})`, X0, 16);
+}
+$('btn-d').onclick = ()=>{ buildDebrief(); show('debrief'); };
+
+/* ---------- Debrief ---------- */
+function moduleSummary(){
+  const aPts = bandPoints(state.aBand), bPts = bandPoints(state.bBand), cPts = Math.min(100, state.cPts);
+  const overall = (aPts + bPts + cPts)/3;
+  return {aPts, bPts, cPts, overall, band: overallBand(overall)};
+}
+function buildDebrief(){
+  const s = moduleSummary();
+  $('debriefresults').innerHTML = `<table>
+    <tr><th>Module</th><th>Result</th><th>Points</th></tr>
+    <tr><td>A — Boiler Engineers of London</td>
+        <td>direct ${fmt(state.directGuess)} (${state.aDirBand}) vs decomposed ${fmt(state.decEstimate)} (${state.aBand})</td>
+        <td class="num">${s.aPts}</td></tr>
+    <tr><td>B — Trinity Paper Drop</td>
+        <td>${state.bYield===null?'—':state.bYield.toFixed(1)+' kt vs 21 kt ('+state.bBand+')'}</td>
+        <td class="num">${s.bPts}</td></tr>
+    <tr><td>C — Geopolitical decomposition</td>
+        <td>${state.cChosen.filter(i=>C_CARDS[i].strong).length}/4 researchable sub-questions; combined P = ${state.cProb===null?'—':Math.round(state.cProb*100)+'%'}</td>
+        <td class="num">${s.cPts}</td></tr>
+    <tr><td>D — Drake tornado (exploratory, unscored)</td>
+        <td>${state.dTop ? 'dominant factor found: '+state.dTop : '—'}</td><td class="num">—</td></tr>
+    <tr><td><strong>Overall</strong></td>
+        <td><span class="grade ${s.band.toLowerCase()}">${s.band}</span></td>
+        <td class="num">${s.overall.toFixed(0)}</td></tr>
+  </table>`;
+}
+$('btn-copy').onclick = ()=>{
+  const s = moduleSummary();
+  const txt = [
+    'FERMI FORGE — results (seed '+SEED+')',
+    'Module A: direct guess '+fmt(state.directGuess)+' ('+state.aDirBand+'); decomposed '+fmt(state.decEstimate)+' ('+state.aBand+'); reference ~10,000 (soft — see app)',
+    'Module B: yield estimate '+(state.bYield===null?'n/a':state.bYield.toFixed(1)+' kt vs instrumented ~21 kt ('+state.bBand+')'),
+    'Module C: decomposition score '+s.cPts+'/100; combined probability '+(state.cProb===null?'n/a':Math.round(state.cProb*100)+'%'),
+    'Module D: dominant uncertainty factor: '+(state.dTop||'not run'),
+    'Overall: '+s.overall.toFixed(0)+'/100 — '+s.band,
+    'Lesson: decomposition, independent errors, and sensitivity analysis — not accurate point estimates.'
+  ].join('\n');
+  const ta = document.createElement('textarea');
+  ta.value = txt; document.body.appendChild(ta); ta.select();
+  try{ document.execCommand('copy'); $('copynote').textContent='Copied to clipboard.'; }
+  catch(e){ $('copynote').textContent='Select and copy manually: '; }
+  document.body.removeChild(ta);
+  if(navigator.clipboard) navigator.clipboard.writeText(txt).catch(()=>{});
+};
+
+/* boot */
+buildA2(); buildC(); buildD();
+resetAll();
+</script>
+</body>
+</html>
