@@ -1,6 +1,8 @@
 # Fermi Forge
 
-**Live:** https://mxtdnl.github.io/fermi-forge/
+**Live:** https://mxtdnl.github.io/forecasting-tools/fermi-forge/
+
+**Intended standalone home (pending repository creation):** https://github.com/mxtdnl/fermi-forge with Pages at https://mxtdnl.github.io/fermi-forge/
 
 An interactive classroom simulation on *breaking big questions down* (Fermi-isation), built as a single
 self-contained HTML file with no external dependencies. Four modules: (A) Boiler Engineers of London — a

@@ -1,6 +1,8 @@
 # Belief Lab
 
-**Live:** https://mxtdnl.github.io/belief-lab/
+**Live:** https://mxtdnl.github.io/forecasting-tools/belief-lab/
+
+**Intended standalone home (pending repository creation):** https://github.com/mxtdnl/belief-lab with Pages at https://mxtdnl.github.io/belief-lab/
 
 An interactive classroom simulation on *actively open-minded thinking* (AOT), built as a single self-contained
 HTML file with no external dependencies. Three modules: (A) Evidence Stream — eight rounds of choosing between

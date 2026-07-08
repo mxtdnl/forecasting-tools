@@ -1,6 +1,8 @@
 # Fox & Hedgehog Derby
 
-**Live:** https://mxtdnl.github.io/fox-hedgehog-derby/
+**Live:** https://mxtdnl.github.io/forecasting-tools/fox-hedgehog-derby/
+
+**Intended standalone home (pending repository creation):** https://github.com/mxtdnl/fox-hedgehog-derby with Pages at https://mxtdnl.github.io/fox-hedgehog-derby/
 
 An interactive classroom simulation on cognitive style and forecasting accuracy (foxes vs hedgehogs), built
 as a single self-contained HTML file with no external dependencies. Four modules: (A) a twelve-question
